@@ -1,6 +1,6 @@
 package services
 
-import "github.com/wpcodevo/golang-mongodb/models"
+import "github.com/thuongnn/clst-mgt-api/models"
 
 type AuthService interface {
 	SignUpUser(*models.SignUpInput) (*models.DBResponse, error)

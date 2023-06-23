@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wpcodevo/golang-mongodb/models"
-	"github.com/wpcodevo/golang-mongodb/utils"
+	"github.com/thuongnn/clst-mgt-api/models"
+	"github.com/thuongnn/clst-mgt-api/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"

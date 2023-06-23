@@ -2,9 +2,9 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/wpcodevo/golang-mongodb/controllers"
-	"github.com/wpcodevo/golang-mongodb/middleware"
-	"github.com/wpcodevo/golang-mongodb/services"
+	"github.com/thuongnn/clst-mgt-api/controllers"
+	"github.com/thuongnn/clst-mgt-api/middleware"
+	"github.com/thuongnn/clst-mgt-api/services"
 )
 
 type RuleRouteController struct {

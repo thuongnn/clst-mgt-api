@@ -1,6 +1,6 @@
 package services
 
-import "github.com/wpcodevo/golang-mongodb/models"
+import "github.com/thuongnn/clst-mgt-api/models"
 
 type UserService interface {
 	FindUserById(id string) (*models.DBResponse, error)

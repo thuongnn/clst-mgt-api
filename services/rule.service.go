@@ -1,6 +1,6 @@
 package services
 
-import "github.com/wpcodevo/golang-mongodb/models"
+import "github.com/thuongnn/clst-mgt-api/models"
 
 type RuleService interface {
 	GetRules(page int, limit int) (*models.RuleListResponse, error)

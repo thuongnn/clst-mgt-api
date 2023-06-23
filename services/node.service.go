@@ -1,7 +1,7 @@
 package services
 
 import (
-	"github.com/wpcodevo/golang-mongodb/models"
+	"github.com/thuongnn/clst-mgt-api/models"
 )
 
 type NodeService interface {

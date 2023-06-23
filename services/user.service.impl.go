@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/wpcodevo/golang-mongodb/models"
-	"github.com/wpcodevo/golang-mongodb/utils"
+	"github.com/thuongnn/clst-mgt-api/models"
+	"github.com/thuongnn/clst-mgt-api/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"

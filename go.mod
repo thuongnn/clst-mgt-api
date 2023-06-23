@@ -1,4 +1,4 @@
-module github.com/wpcodevo/golang-mongodb
+module github.com/thuongnn/clst-mgt-api
 
 go 1.18
 
@@ -11,6 +11,7 @@ require (
 	go.mongodb.org/mongo-driver v1.9.1
 	golang.org/x/crypto v0.0.0-20220513210258-46612604a0f9
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
+	k8s.io/apimachinery v0.27.3
 	k8s.io/client-go v0.27.3
 )
 
@@ -75,7 +76,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.27.3 // indirect
-	k8s.io/apimachinery v0.27.3 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
 	k8s.io/utils v0.0.0-20230209194617-a36077c30491 // indirect
