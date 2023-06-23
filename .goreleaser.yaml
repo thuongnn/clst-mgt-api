@@ -3,6 +3,10 @@ release:
     owner: thuongnn
     name: clst-mgt-api
 
+before:
+  hooks:
+    - go mod tidy
+
 builds:
   - id: "api"
     main: ./cmd/server
@@ -39,6 +43,7 @@ dockers:
       - "--label=image.title={{.ProjectName}}"
       - "--label=image.revision={{.FullCommit}}"
       - "--label=image.version={{.Version}}"
+      - "--build-arg=BINARY_NAME=api"
       - "--platform=linux/amd64"
 
   - use: docker
@@ -55,6 +60,7 @@ dockers:
       - "--label=image.title={{.ProjectName}}"
       - "--label=image.revision={{.FullCommit}}"
       - "--label=image.version={{.Version}}"
+      - "--build-arg=BINARY_NAME=worker"
       - "--platform=linux/amd64"
 
 archives:
