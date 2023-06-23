@@ -6,6 +6,7 @@ release:
 before:
   hooks:
     - go mod tidy
+    - docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_TOKEN
 
 builds:
   - id: "api"
@@ -32,7 +33,7 @@ dockers:
   - use: docker
     goos: linux
     goarch: amd64
-    skip_push: true
+    skip_push: false
     dockerfile: 'Dockerfile'
     image_templates:
       - "thuongnn1997/clst-mgt-api:latest"
@@ -49,7 +50,7 @@ dockers:
   - use: docker
     goos: linux
     goarch: amd64
-    skip_push: true
+    skip_push: false
     dockerfile: 'Dockerfile'
     image_templates:
       - "thuongnn1997/clst-mgt-worker:latest"

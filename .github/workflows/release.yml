@@ -1,9 +1,9 @@
-name: Release
+name: Build & release image
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - master
 
 jobs:
   goreleaser:
