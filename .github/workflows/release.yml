@@ -5,6 +5,10 @@ on:
     tags:
       - '*'
 
+env:
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKERHUB_TOKEN:  ${{ secrets.DOCKERHUB_TOKEN }}
+
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
