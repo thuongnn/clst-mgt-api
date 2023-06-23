@@ -5,10 +5,6 @@ on:
     tags:
       - '*'
 
-env:
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  DOCKERHUB_TOKEN:  ${{ secrets.DOCKERHUB_TOKEN }}
-
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
@@ -30,3 +26,5 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN:  ${{ secrets.DOCKERHUB_TOKEN }}
