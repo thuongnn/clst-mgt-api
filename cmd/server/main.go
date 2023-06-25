@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/thuongnn/clst-mgt-api/utils"
 	"k8s.io/client-go/kubernetes"
 	"log"
@@ -23,6 +24,7 @@ var (
 	server      *gin.Engine
 	ctx         context.Context
 	mongoClient *mongo.Client
+	redisClient *redis.Client
 	k8sClient   *kubernetes.Clientset
 
 	userService         services.UserService
@@ -33,12 +35,6 @@ var (
 	authService         services.AuthService
 	AuthController      controllers.AuthController
 	AuthRouteController routes.AuthRouteController
-
-	// 👇 Create the Post Variables
-	postService         services.PostService
-	PostController      controllers.PostController
-	postCollection      *mongo.Collection
-	PostRouteController routes.PostRouteController
 
 	// 👇 Create the Nodes Variables
 	nodeService         services.NodeService
@@ -51,6 +47,11 @@ var (
 	RuleController      controllers.RuleController
 	ruleCollection      *mongo.Collection
 	RuleRouteController routes.RuleRouteController
+
+	// 👇 Create the Triggers Variables
+	triggerService         services.TriggerService
+	TriggerController      controllers.TriggerController
+	TriggerRouteController routes.TriggerRouteController
 )
 
 func init() {
@@ -73,6 +74,20 @@ func init() {
 	}
 	fmt.Println("MongoDB successfully connected...")
 
+	// Connect to Redis
+	fmt.Println(appConfig.RedisUri)
+	fmt.Println(appConfig.RedisPassword)
+	redisClient = redis.NewClient(&redis.Options{
+		DB:   0,
+		Addr: appConfig.RedisUri,
+		//Password: appConfig.RedisPassword,
+	})
+	if _, err := redisClient.Ping(ctx).Result(); err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Redis successfully connected...")
+
 	// Connect to K8s cluster
 	kubeConfig, err := utils.GetKubeConfig(appConfig.Environment != config.DefaultEnvironment)
 	if err != nil {
@@ -89,21 +104,16 @@ func init() {
 	}
 	fmt.Println("Kubernetes API successfully connected...")
 
-	// Collections
+	// 👇 Auth
 	authCollection = mongoClient.Database(appConfig.DBName).Collection("users")
 	userService = services.NewUserServiceImpl(authCollection, ctx)
 	authService = services.NewAuthService(authCollection, ctx)
 	AuthController = controllers.NewAuthController(authService, userService, ctx, authCollection)
 	AuthRouteController = routes.NewAuthRouteController(AuthController)
 
+	// 👇 Users
 	UserController = controllers.NewUserController(userService)
 	UserRouteController = routes.NewRouteUserController(UserController)
-
-	// 👇 Instantiate the Constructors
-	postCollection = mongoClient.Database(appConfig.DBName).Collection("posts")
-	postService = services.NewPostService(postCollection, ctx)
-	PostController = controllers.NewPostController(postService)
-	PostRouteController = routes.NewPostControllerRoute(PostController)
 
 	// 👇 Nodes
 	nodeCollection = mongoClient.Database(appConfig.DBName).Collection("nodes")
@@ -117,6 +127,11 @@ func init() {
 	RuleController = controllers.NewRuleController(ruleService)
 	RuleRouteController = routes.NewRuleControllerRoute(RuleController)
 
+	// 👇 Triggers
+	triggerService = services.NewTriggerService(redisClient, ctx)
+	TriggerController = controllers.NewTriggerController(triggerService)
+	TriggerRouteController = routes.NewTriggerControllerRoute(TriggerController)
+
 	server = gin.Default()
 }
 
@@ -127,8 +142,8 @@ func main() {
 	}
 
 	defer mongoClient.Disconnect(ctx)
+	defer redisClient.Close()
 
-	// startGinServer(config)
 	startGinServer(appConfig)
 }
 
@@ -148,9 +163,7 @@ func startGinServer(config config.Config) {
 	UserRouteController.UserRoute(router, userService)
 	NodeRouteController.NodeRoute(router, userService)
 	RuleRouteController.RuleRoute(router, userService)
-
-	// 👇 Post Route
-	PostRouteController.PostRoute(router)
+	TriggerRouteController.TriggerRoute(router, userService)
 
 	log.Fatal(server.Run(":" + config.Port))
 }

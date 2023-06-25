@@ -11,10 +11,13 @@ var (
 )
 
 type Config struct {
-	DBUri       string `mapstructure:"MONGODB_URI"`
-	DBName      string `mapstructure:"MONGODB_DB_NAME"`
-	Port        string `mapstructure:"PORT"`
-	Environment string `mapstructure:"ENVIRONMENT"`
+	DBUri         string `mapstructure:"MONGODB_URI"`
+	DBName        string `mapstructure:"MONGODB_DB_NAME"`
+	Port          string `mapstructure:"PORT"`
+	RedisUri      string `mapstructure:"REDIS_URL"`
+	RedisPassword string `mapstructure:"REDIS_PASSWORD"`
+	Environment   string `mapstructure:"ENVIRONMENT"`
+	ProxyScanUrl  string `mapstructure:"PROXY_SCAN_URL"`
 
 	AccessTokenPrivateKey  string        `mapstructure:"ACCESS_TOKEN_PRIVATE_KEY"`
 	AccessTokenPublicKey   string        `mapstructure:"ACCESS_TOKEN_PUBLIC_KEY"`

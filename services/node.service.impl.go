@@ -21,6 +21,21 @@ type NodeServiceImpl struct {
 	ctx            context.Context
 }
 
+func (n NodeServiceImpl) GetNodeByID(nodeId string) (*models.DBNode, error) {
+	query := bson.M{"node_id": nodeId}
+
+	var node *models.DBNode
+	if err := n.nodeCollection.FindOne(n.ctx, query).Decode(&node); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, errors.New("no document with that Id exists")
+		}
+
+		return nil, err
+	}
+
+	return node, nil
+}
+
 func (n NodeServiceImpl) GetRolesByNodeId(nodeId string) ([]string, error) {
 	query := bson.M{"node_id": nodeId}
 

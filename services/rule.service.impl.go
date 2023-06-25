@@ -102,6 +102,32 @@ func (r RuleServiceImpl) GetRules(page int, limit int) (*models.RuleListResponse
 	}, nil
 }
 
+func (r RuleServiceImpl) GetRulesByRoles(roles []string) ([]*models.DBRule, error) {
+	filter := bson.M{
+		"roles": bson.M{"$in": roles},
+	}
+
+	var rules []*models.DBRule
+	cursor, err := r.ruleCollection.Find(r.ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(r.ctx)
+
+	for cursor.Next(r.ctx) {
+		var rule = &models.DBRule{}
+		if errDecode := cursor.Decode(rule); errDecode != nil {
+			return nil, errDecode
+		}
+		rules = append(rules, rule)
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	return rules, nil
+}
+
 func (r RuleServiceImpl) GetRulesByIdsAndRoles(ids []string, roles []string) ([]*models.DBRule, error) {
 	objectIDs := make([]primitive.ObjectID, len(ids))
 	for i, id := range ids {

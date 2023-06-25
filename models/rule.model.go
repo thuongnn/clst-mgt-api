@@ -13,6 +13,7 @@ type DBRule struct {
 	DestinationAddresses []string           `json:"destination_addresses,omitempty" bson:"destination_addresses,omitempty"`
 	DestinationPorts     []int              `json:"destination_ports,omitempty" bson:"destination_ports,omitempty"`
 	DestinationServices  []string           `json:"destination_services,omitempty" bson:"destination_services,omitempty"`
+	IsThroughProxy       bool               `json:"is_through_proxy,omitempty" bson:"is_through_proxy,omitempty"`
 	CR                   []int              `json:"cr,omitempty" bson:"cr,omitempty"`
 	IsActive             bool               `json:"is_active,omitempty" bson:"is_active,omitempty" default:"true"`
 	Description          string             `json:"description,omitempty" bson:"description,omitempty"`
@@ -51,8 +52,11 @@ type DeleteRule struct {
 }
 
 type HistoryScan struct {
-	Name      string    `json:"name,omitempty" bson:"name,omitempty"`
-	NodeId    string    `json:"node_id,omitempty" bson:"node_id,omitempty"`
-	Status    string    `json:"status,omitempty" bson:"status,omitempty"`
-	UpdatedAt time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
+	NodeName           string    `json:"node_name,omitempty" bson:"node_name,omitempty"`
+	NodeId             string    `json:"node_id,omitempty" bson:"node_id,omitempty"`
+	DestinationAddress string    `json:"destination_address" bson:"destination_address,omitempty"`
+	DestinationPort    int       `json:"destination_port" bson:"destination_port,omitempty"`
+	Status             string    `json:"status,omitempty" bson:"status,omitempty"`
+	ErrorMessage       string    `json:"error_message" bson:"error_message,omitempty"`
+	UpdatedAt          time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
 }

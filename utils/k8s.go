@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -40,4 +41,21 @@ func K8SHealth(k8sClient *kubernetes.Clientset, ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// GetCurrentNodeId Get node id of current Pod (Runas DaemonSet)
+func GetCurrentNodeId(k8sClient *kubernetes.Clientset, ctx context.Context) (string, error) {
+	podName := os.Getenv("HOSTNAME")
+	//podNamespace := os.Getenv("POD_NAMESPACE")
+	pod, err := k8sClient.CoreV1().Pods("default").Get(ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	node, err := k8sClient.CoreV1().Nodes().Get(ctx, pod.Spec.NodeName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	return string(node.UID), nil
 }

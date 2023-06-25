@@ -2,111 +2,119 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"net/http"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/thuongnn/clst-mgt-api/config"
-	"github.com/thuongnn/clst-mgt-api/controllers"
-	"github.com/thuongnn/clst-mgt-api/routes"
+	"github.com/thuongnn/clst-mgt-api/handlers"
+	"github.com/thuongnn/clst-mgt-api/models"
 	"github.com/thuongnn/clst-mgt-api/services"
+	"github.com/thuongnn/clst-mgt-api/utils"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"k8s.io/client-go/kubernetes"
+	"log"
 )
 
 var (
-	server      *gin.Engine
 	ctx         context.Context
-	mongoclient *mongo.Client
+	mongoClient *mongo.Client
+	redisClient *redis.Client
+	k8sClient   *kubernetes.Clientset
 
-	userService         services.UserService
-	UserController      controllers.UserController
-	UserRouteController routes.UserRouteController
-
-	authCollection      *mongo.Collection
-	authService         services.AuthService
-	AuthController      controllers.AuthController
-	AuthRouteController routes.AuthRouteController
-
-	// 👇 Create the Post Variables
-	postService         services.PostService
-	PostController      controllers.PostController
-	postCollection      *mongo.Collection
-	PostRouteController routes.PostRouteController
+	msgHandler *handlers.MessageHandler
 )
 
 func init() {
-	config, err := config.LoadConfig(".")
+	appConfig, err := config.LoadConfig(".")
 	if err != nil {
 		log.Fatal("Could not load environment variables", err)
 	}
 
 	ctx = context.TODO()
 
-	// Connect to MongoDB
-	mongoconn := options.Client().ApplyURI(config.DBUri)
-	mongoclient, err := mongo.Connect(ctx, mongoconn)
-
+	// 👇 Connect to MongoDB
+	mongoConnection := options.Client().ApplyURI(appConfig.DBUri)
+	mongoClient, err = mongo.Connect(ctx, mongoConnection)
 	if err != nil {
 		panic(err)
 	}
 
-	if err := mongoclient.Ping(ctx, readpref.Primary()); err != nil {
+	if err := mongoClient.Ping(ctx, readpref.Primary()); err != nil {
+		panic(err)
+	}
+	log.Println("MongoDB successfully connected..")
+
+	// 👇 Connect to Redis
+	redisClient = redis.NewClient(&redis.Options{
+		DB:   0,
+		Addr: appConfig.RedisUri,
+		//Password: appConfig.RedisPassword,
+	})
+	if _, err := redisClient.Ping(ctx).Result(); err != nil {
+		panic(err)
+	}
+	log.Println("Redis successfully connected..")
+
+	// 👇 Connect to K8s cluster
+	kubeConfig, err := utils.GetKubeConfig(appConfig.Environment != config.DefaultEnvironment)
+	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("MongoDB successfully connected...")
+	k8sClient, err = kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		panic(err)
+	}
 
-	// Collections
-	authCollection = mongoclient.Database("golang_mongodb").Collection("users")
-	userService = services.NewUserServiceImpl(authCollection, ctx)
-	authService = services.NewAuthService(authCollection, ctx)
-	AuthController = controllers.NewAuthController(authService, userService, ctx, authCollection)
-	AuthRouteController = routes.NewAuthRouteController(AuthController)
+	if err := utils.K8SHealth(k8sClient, ctx); err != nil {
+		panic(err)
+	}
+	log.Println("Kubernetes API successfully connected..")
 
-	UserController = controllers.NewUserController(userService)
-	UserRouteController = routes.NewRouteUserController(UserController)
-
-	// 👇 Instantiate the Constructors
-	postCollection = mongoclient.Database("golang_mongodb").Collection("posts")
-	postService = services.NewPostService(postCollection, ctx)
-	PostController = controllers.NewPostController(postService)
-	PostRouteController = routes.NewPostControllerRoute(PostController)
-
-	server = gin.Default()
+	//
+	msgHandler = handlers.NewMessageHandler(ctx)
 }
 
 func main() {
-	config, err := config.LoadConfig(".")
-
+	appConfig, err := config.LoadConfig(".")
 	if err != nil {
-		log.Fatal("Could not load config", err)
+		log.Fatal("Could not load environment variables", err)
 	}
 
-	defer mongoclient.Disconnect(ctx)
+	defer mongoClient.Disconnect(ctx)
+	defer redisClient.Close()
 
-	// startGinServer(config)
-	startGinServer(config)
+	// 👇 Nodes
+	nodeCollection := mongoClient.Database(appConfig.DBName).Collection("nodes")
+	nodeService := services.NewNodeService(nodeCollection, k8sClient, ctx)
+
+	// 👇 Rules
+	ruleCollection := mongoClient.Database(appConfig.DBName).Collection("rules")
+	ruleService := services.NewRuleService(ruleCollection, ctx)
+
+	// fw handlers register
+	fwHandler := handlers.NewFWHandler(ctx, nodeService, ruleService, redisClient, k8sClient)
+	msgHandler.RegisterHandler(models.TriggerAll, fwHandler.HandleScanAllRules)
+	msgHandler.RegisterHandler(models.TriggerByRuleIds, fwHandler.HandleScanByRuleIds)
+
+	// starting to handle message from Redis PubSub
+	startHandleMessage()
 }
 
-func startGinServer(config config.Config) {
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{config.Origin}
-	corsConfig.AllowCredentials = true
+func startHandleMessage() {
+	// Subscribe to the Topic given
+	topic := redisClient.Subscribe(ctx, "rule_triggers")
+	channel := topic.Channel()
+	for msg := range channel {
+		message := &models.EventMessage{}
+		// Unmarshal the data into the user
+		err := message.UnmarshalBinary([]byte(msg.Payload))
+		if err != nil {
+			panic(err)
+		}
 
-	server.Use(cors.New(corsConfig))
-
-	router := server.Group("/api")
-	router.GET("/health", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{"status": "OK"})
-	})
-
-	AuthRouteController.AuthRoute(router, userService)
-	UserRouteController.UserRoute(router, userService)
-	// 👇 Post Route
-	PostRouteController.PostRoute(router)
-	log.Fatal(server.Run(":" + config.Port))
+		if errHandler := msgHandler.HandleMessage(message); errHandler != nil {
+			log.Println(errHandler)
+		}
+	}
 }
