@@ -224,7 +224,6 @@ func (r RuleServiceImpl) CreateHistoryScan(ruleId string, historyScan *models.Hi
 		if _, err := r.ruleCollection.UpdateOne(r.ctx, filter, update); err != nil {
 			return err
 		}
-		return nil
 	} else {
 		filter := bson.M{
 			"_id":                  obId,

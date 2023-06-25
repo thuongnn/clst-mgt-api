@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -103,7 +104,7 @@ func (fwh FWHandler) firewallScan(node *models.DBNode, rule *models.DBRule) {
 				Status:             utils.StatusErrorScan,
 			}
 
-			destinationHostPort := net.JoinHostPort(address, string(rune(port)))
+			destinationHostPort := net.JoinHostPort(address, strconv.Itoa(port))
 			conn, err := net.DialTimeout("tcp", destinationHostPort, utils.TimeoutScan)
 			if err != nil || conn == nil {
 				log.Printf("Rule scan with node %s connection to %s not opened\n", node.Name, destinationHostPort)
@@ -116,7 +117,7 @@ func (fwh FWHandler) firewallScan(node *models.DBNode, rule *models.DBRule) {
 			}
 
 			if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id.String(), historyScan); errCreate != nil {
-				log.Println(fmt.Errorf("Error create history scan with rule id: %s ", rule.Id.String()))
+				log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.String()))
 			}
 		}
 	}
@@ -139,7 +140,7 @@ func (fwh FWHandler) firewallScanThroughProxy(node *models.DBNode, rule *models.
 
 	newRecordHistoryScan := func(historyScan *models.HistoryScan) {
 		if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id.String(), historyScan); errCreate != nil {
-			log.Println(fmt.Errorf("Error create history scan with rule id: %s ", rule.Id.String()))
+			log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.String()))
 		}
 	}
 
