@@ -18,28 +18,6 @@ type RuleServiceImpl struct {
 	ctx            context.Context
 }
 
-func (r RuleServiceImpl) IsHistoryScanExits(nodeId, destAddress string, destPort int) (bool, error) {
-	filter := bson.M{
-		"history_scan": bson.M{
-			"$elemMatch": bson.M{
-				"node_id":             nodeId,
-				"destination_address": destAddress,
-				"destination_port":    destPort,
-			},
-		},
-	}
-
-	if err := r.ruleCollection.FindOne(r.ctx, filter).Err(); err != nil {
-		// ErrNoDocuments means that the filter did not match any documents in the collection
-		if err == mongo.ErrNoDocuments {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return true, nil
-}
-
 func (r RuleServiceImpl) GetRules(page int, limit int) (*models.RuleListResponse, error) {
 	if page == 0 {
 		page = 1
@@ -209,65 +187,6 @@ func (r RuleServiceImpl) DeleteRule(id string) error {
 	}
 
 	return nil
-}
-
-func (r RuleServiceImpl) CreateHistoryScan(ruleId primitive.ObjectID, historyScan *models.HistoryScan) error {
-	historyScan.UpdatedAt = time.Now()
-
-	isExists, errCheck := r.IsHistoryScanExits(historyScan.NodeId, historyScan.DestinationAddress, historyScan.DestinationPort)
-	if errCheck != nil {
-		return errCheck
-	}
-
-	if !isExists {
-		filter := bson.D{{Key: "_id", Value: ruleId}}
-		update := bson.M{"$push": bson.M{"history_scan": historyScan}}
-		if _, err := r.ruleCollection.UpdateOne(r.ctx, filter, update); err != nil {
-			return err
-		}
-	} else {
-		filter := bson.M{
-			"_id": ruleId,
-			"history_scan": bson.M{
-				"$elemMatch": bson.M{
-					"node_id":             historyScan.NodeId,
-					"destination_address": historyScan.DestinationAddress,
-					"destination_port":    historyScan.DestinationPort,
-				},
-			},
-		}
-
-		update := bson.M{"$set": bson.M{
-			"history_scan.$.status":     historyScan.Status,
-			"history_scan.$.updated_at": historyScan.UpdatedAt,
-		}}
-
-		if _, err := r.ruleCollection.UpdateOne(r.ctx, filter, update); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (r RuleServiceImpl) GetHistoryScanByRuleId(ruleId string) ([]models.HistoryScan, error) {
-	obId, _ := primitive.ObjectIDFromHex(ruleId)
-	query := bson.M{"_id": obId}
-
-	var rule *models.DBRule
-	if err := r.ruleCollection.FindOne(r.ctx, query).Decode(&rule); err != nil {
-		if err == mongo.ErrNoDocuments {
-			return []models.HistoryScan{}, errors.New("no document with that Id exists")
-		}
-
-		return []models.HistoryScan{}, err
-	}
-
-	if rule.HistoryScan == nil {
-		return []models.HistoryScan{}, nil
-	}
-
-	return rule.HistoryScan, nil
 }
 
 func NewRuleService(ruleCollection *mongo.Collection, ctx context.Context) RuleService {

@@ -23,5 +23,4 @@ func (r *RuleRouteController) RuleRoute(rg *gin.RouterGroup, userService service
 	router.POST("/", r.ruleController.CreateRule)
 	router.PATCH("/:ruleId", r.ruleController.UpdateRule)
 	router.DELETE("/:ruleId", r.ruleController.DeleteRule)
-	router.GET("/:ruleId/history", r.ruleController.GetHistoryScanByRuleId)
 }

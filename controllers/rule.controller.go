@@ -84,22 +84,6 @@ func (rc *RuleController) GetRules(ctx *gin.Context) {
 	})
 }
 
-func (rc *RuleController) GetHistoryScanByRuleId(ctx *gin.Context) {
-	ruleId := ctx.Param("ruleId")
-
-	historyScan, err := rc.ruleService.GetHistoryScanByRuleId(ruleId)
-	if err != nil {
-		if strings.Contains(err.Error(), "no document") {
-			ctx.JSON(http.StatusNotFound, gin.H{"status": "fail", "message": err.Error()})
-			return
-		}
-		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "results": len(historyScan), "data": historyScan})
-}
-
 func (rc *RuleController) DeleteRule(ctx *gin.Context) {
 	ruleId := ctx.Param("ruleId")
 

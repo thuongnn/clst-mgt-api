@@ -2,7 +2,6 @@ package services
 
 import (
 	"github.com/thuongnn/clst-mgt-api/models"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type RuleService interface {
@@ -12,7 +11,4 @@ type RuleService interface {
 	CreateRule(rule *models.DBRule) error
 	UpdateRule(id string, rule *models.UpdateRule) error
 	DeleteRule(id string) error
-	CreateHistoryScan(ruleId primitive.ObjectID, historyScan *models.HistoryScan) error
-	GetHistoryScanByRuleId(ruleId string) ([]models.HistoryScan, error)
-	IsHistoryScanExits(nodeId, destAddress string, destPort int) (bool, error)
 }

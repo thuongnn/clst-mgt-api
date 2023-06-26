@@ -17,15 +17,16 @@ import (
 )
 
 type FWHandler struct {
-	ctx         context.Context
-	nodeService services.NodeService
-	ruleService services.RuleService
-	redisClient *redis.Client
-	k8sClient   *kubernetes.Clientset
+	ctx                context.Context
+	nodeService        services.NodeService
+	ruleService        services.RuleService
+	historyScanService services.HistoryScanService
+	redisClient        *redis.Client
+	k8sClient          *kubernetes.Clientset
 }
 
-func NewFWHandler(ctx context.Context, nodeService services.NodeService, ruleService services.RuleService, redisClient *redis.Client, k8sClient *kubernetes.Clientset) *FWHandler {
-	return &FWHandler{ctx, nodeService, ruleService, redisClient, k8sClient}
+func NewFWHandler(ctx context.Context, nodeService services.NodeService, ruleService services.RuleService, historyScanService services.HistoryScanService, redisClient *redis.Client, k8sClient *kubernetes.Clientset) *FWHandler {
+	return &FWHandler{ctx, nodeService, ruleService, historyScanService, redisClient, k8sClient}
 }
 
 func (fwh FWHandler) HandleScanAllRules(message *models.EventMessage) error {
@@ -92,7 +93,8 @@ func (fwh FWHandler) HandleScanByRuleIds(message *models.EventMessage) error {
 func (fwh FWHandler) firewallScan(node *models.DBNode, rule *models.DBRule) {
 	for _, address := range rule.DestinationAddresses {
 		for _, port := range rule.DestinationPorts {
-			historyScan := &models.HistoryScan{
+			historyScan := &models.DBHistoryScan{
+				RuleId:             rule.Id,
 				NodeName:           node.Name,
 				NodeId:             node.NodeId,
 				DestinationAddress: address,
@@ -112,7 +114,7 @@ func (fwh FWHandler) firewallScan(node *models.DBNode, rule *models.DBRule) {
 				historyScan.Status = utils.StatusSuccessScan
 			}
 
-			if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id, historyScan); errCreate != nil {
+			if errCreate := fwh.historyScanService.CreateHistoryScan(historyScan); errCreate != nil {
 				log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.Hex()))
 			}
 		}
@@ -134,14 +136,15 @@ func (fwh FWHandler) firewallScanThroughProxy(node *models.DBNode, rule *models.
 		},
 	}
 
-	newRecordHistoryScan := func(historyScan *models.HistoryScan) {
-		if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id, historyScan); errCreate != nil {
+	newRecordHistoryScan := func(historyScan *models.DBHistoryScan) {
+		if errCreate := fwh.historyScanService.CreateHistoryScan(historyScan); errCreate != nil {
 			log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.Hex()))
 		}
 	}
 
 	for _, address := range rule.DestinationAddresses {
-		historyScan := &models.HistoryScan{
+		historyScan := &models.DBHistoryScan{
+			RuleId:             rule.Id,
 			NodeName:           node.Name,
 			NodeId:             node.NodeId,
 			DestinationAddress: address,

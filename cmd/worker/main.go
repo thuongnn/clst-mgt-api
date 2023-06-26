@@ -92,8 +92,12 @@ func main() {
 	ruleCollection := mongoClient.Database(appConfig.DBName).Collection("rules")
 	ruleService := services.NewRuleService(ruleCollection, ctx)
 
+	// 👇 History Scan
+	historyScanCollection := mongoClient.Database(appConfig.DBName).Collection("history_scan")
+	historyScanService := services.NewHistoryScanService(historyScanCollection, ctx)
+
 	// fw handlers register
-	fwHandler := handlers.NewFWHandler(ctx, nodeService, ruleService, redisClient, k8sClient)
+	fwHandler := handlers.NewFWHandler(ctx, nodeService, ruleService, historyScanService, redisClient, k8sClient)
 	msgHandler.RegisterHandler(models.TriggerAll, fwHandler.HandleScanAllRules)
 	msgHandler.RegisterHandler(models.TriggerByRuleIds, fwHandler.HandleScanByRuleIds)
 

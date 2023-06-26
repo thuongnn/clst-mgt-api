@@ -48,6 +48,12 @@ var (
 	ruleCollection      *mongo.Collection
 	RuleRouteController routes.RuleRouteController
 
+	// 👇 Create the History Scan Variables
+	historyScanService         services.HistoryScanService
+	HistoryScanController      controllers.HistoryScanController
+	historyScanCollection      *mongo.Collection
+	HistoryScanRouteController routes.HistoryScanRouteController
+
 	// 👇 Create the Triggers Variables
 	triggerService         services.TriggerService
 	TriggerController      controllers.TriggerController
@@ -127,6 +133,12 @@ func init() {
 	RuleController = controllers.NewRuleController(ruleService)
 	RuleRouteController = routes.NewRuleControllerRoute(RuleController)
 
+	// 👇 History Scan
+	historyScanCollection = mongoClient.Database(appConfig.DBName).Collection("history_scan")
+	historyScanService = services.NewHistoryScanService(historyScanCollection, ctx)
+	HistoryScanController = controllers.NewHistoryScanController(historyScanService)
+	HistoryScanRouteController = routes.NewHistoryScanControllerRoute(HistoryScanController)
+
 	// 👇 Triggers
 	triggerService = services.NewTriggerService(redisClient, ctx)
 	TriggerController = controllers.NewTriggerController(triggerService)
@@ -163,6 +175,7 @@ func startGinServer(config config.Config) {
 	UserRouteController.UserRoute(router, userService)
 	NodeRouteController.NodeRoute(router, userService)
 	RuleRouteController.RuleRoute(router, userService)
+	HistoryScanRouteController.HistoryScanRoute(router, userService)
 	TriggerRouteController.TriggerRoute(router, userService)
 
 	log.Fatal(server.Run(":" + config.Port))

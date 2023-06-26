@@ -17,7 +17,6 @@ type DBRule struct {
 	CR                   []int              `json:"cr,omitempty" bson:"cr,omitempty"`
 	IsActive             bool               `json:"is_active,omitempty" bson:"is_active,omitempty" default:"true"`
 	Description          string             `json:"description,omitempty" bson:"description,omitempty"`
-	HistoryScan          []HistoryScan      `json:"history_scan,omitempty" bson:"history_scan,omitempty"`
 	CreateAt             time.Time          `json:"created_at,omitempty" bson:"created_at,omitempty"`
 	UpdatedAt            time.Time          `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
 }
@@ -50,14 +49,4 @@ type RuleListResponse struct {
 
 type DeleteRule struct {
 	ids []string
-}
-
-type HistoryScan struct {
-	NodeName           string    `json:"node_name,omitempty" bson:"node_name,omitempty"`
-	NodeId             string    `json:"node_id,omitempty" bson:"node_id,omitempty"`
-	DestinationAddress string    `json:"destination_address" bson:"destination_address,omitempty"`
-	DestinationPort    int       `json:"destination_port" bson:"destination_port,omitempty"`
-	Status             string    `json:"status,omitempty" bson:"status,omitempty"`
-	ErrorMessage       string    `json:"error_message" bson:"error_message,omitempty"`
-	UpdatedAt          time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
 }
