@@ -8,6 +8,7 @@ import (
 
 var (
 	DefaultEnvironment = "dev"
+	DefaultNamespace   = "default"
 )
 
 type Config struct {
@@ -20,6 +21,7 @@ type Config struct {
 	Environment   string `mapstructure:"ENVIRONMENT"`
 	ProxyScanUrl  string `mapstructure:"PROXY_SCAN_URL"`
 	Domain        string `mapstructure:"DOMAIN"`
+	Namespace     string `mapstructure:"NAMESPACE"`
 
 	AccessTokenPrivateKey  string        `mapstructure:"ACCESS_TOKEN_PRIVATE_KEY"`
 	AccessTokenPublicKey   string        `mapstructure:"ACCESS_TOKEN_PUBLIC_KEY"`
@@ -45,6 +47,7 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.SetConfigName(".env")
 
 	viper.SetDefault("Environment", DefaultEnvironment)
+	viper.SetDefault("Namespace", DefaultNamespace)
 
 	viper.AutomaticEnv()
 

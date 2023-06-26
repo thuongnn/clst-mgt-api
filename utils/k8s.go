@@ -3,10 +3,12 @@ package utils
 import (
 	"context"
 	"fmt"
+	"github.com/thuongnn/clst-mgt-api/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -45,9 +47,13 @@ func K8SHealth(k8sClient *kubernetes.Clientset, ctx context.Context) error {
 
 // GetCurrentNodeId Get node id of current Pod (Runas DaemonSet)
 func GetCurrentNodeId(k8sClient *kubernetes.Clientset, ctx context.Context) (string, error) {
+	appConfig, err := config.LoadConfig(".")
+	if err != nil {
+		log.Fatal("Could not load environment variables", err)
+	}
+
 	podName := os.Getenv("HOSTNAME")
-	//podNamespace := os.Getenv("POD_NAMESPACE")
-	pod, err := k8sClient.CoreV1().Pods("default").Get(ctx, podName, metav1.GetOptions{})
+	pod, err := k8sClient.CoreV1().Pods(appConfig.Namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
