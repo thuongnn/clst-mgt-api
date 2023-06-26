@@ -89,9 +89,9 @@ func (ac *AuthController) SignInUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("access_token", accessToken, appConfig.AccessTokenMaxAge*60, "/", "localhost", false, true)
-	ctx.SetCookie("refresh_token", refreshToken, appConfig.RefreshTokenMaxAge*60, "/", "localhost", false, true)
-	ctx.SetCookie("logged_in", "true", appConfig.AccessTokenMaxAge*60, "/", "localhost", false, false)
+	ctx.SetCookie("access_token", accessToken, appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, true)
+	ctx.SetCookie("refresh_token", refreshToken, appConfig.RefreshTokenMaxAge*60, "/", appConfig.Domain, false, true)
+	ctx.SetCookie("logged_in", "true", appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, false)
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": accessToken})
 }
@@ -126,16 +126,18 @@ func (ac *AuthController) RefreshAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("access_token", accessToken, appConfig.AccessTokenMaxAge*60, "/", "localhost", false, true)
-	ctx.SetCookie("logged_in", "true", appConfig.AccessTokenMaxAge*60, "/", "localhost", false, false)
+	ctx.SetCookie("access_token", accessToken, appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, true)
+	ctx.SetCookie("logged_in", "true", appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, false)
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": accessToken})
 }
 
 func (ac *AuthController) LogoutUser(ctx *gin.Context) {
-	ctx.SetCookie("access_token", "", -1, "/", "localhost", false, true)
-	ctx.SetCookie("refresh_token", "", -1, "/", "localhost", false, true)
-	ctx.SetCookie("logged_in", "", -1, "/", "localhost", false, true)
+	appConfig, _ := config.LoadConfig(".")
+
+	ctx.SetCookie("access_token", "", -1, "/", appConfig.Domain, false, true)
+	ctx.SetCookie("refresh_token", "", -1, "/", appConfig.Domain, false, true)
+	ctx.SetCookie("logged_in", "", -1, "/", appConfig.Domain, false, true)
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }

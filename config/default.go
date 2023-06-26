@@ -18,6 +18,7 @@ type Config struct {
 	RedisPassword string `mapstructure:"REDIS_PASSWORD"`
 	Environment   string `mapstructure:"ENVIRONMENT"`
 	ProxyScanUrl  string `mapstructure:"PROXY_SCAN_URL"`
+	Domain        string `mapstructure:"DOMAIN"`
 
 	AccessTokenPrivateKey  string        `mapstructure:"ACCESS_TOKEN_PRIVATE_KEY"`
 	AccessTokenPublicKey   string        `mapstructure:"ACCESS_TOKEN_PUBLIC_KEY"`
