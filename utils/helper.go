@@ -1,10 +1,6 @@
 package utils
 
-import (
-	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"strings"
-)
+import "go.mongodb.org/mongo-driver/bson"
 
 func ToDoc(v interface{}) (doc *bson.D, err error) {
 	data, err := bson.Marshal(v)
@@ -14,8 +10,4 @@ func ToDoc(v interface{}) (doc *bson.D, err error) {
 
 	err = bson.Unmarshal(data, &doc)
 	return
-}
-
-func ArrToString(input []int) string {
-	return strings.Trim(strings.Join(strings.Fields(fmt.Sprint(input)), ", "), "[]")
 }

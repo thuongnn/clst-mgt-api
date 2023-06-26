@@ -69,8 +69,8 @@ func (fwh FWHandler) HandleScanByRuleIds(message *models.EventMessage) error {
 		return err
 	}
 
-	ruleIds, ok := message.Data.([]string)
-	if !ok {
+	ruleIds, errParseRuleIds := utils.ConvertToStringArray(message.Data)
+	if errParseRuleIds != nil {
 		return fmt.Errorf("Error get rules id from Redis PubSub ")
 	}
 
