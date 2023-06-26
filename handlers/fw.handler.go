@@ -158,7 +158,7 @@ func (fwh FWHandler) firewallScanThroughProxy(node *models.DBNode, rule *models.
 
 		resp, errConnect := client.Do(req)
 		if errConnect != nil {
-			log.Printf("Failed to connect to %s via proxy: %v\n", address, errConnect)
+			log.Printf("Failed connect to %s via proxy: %v\n", address, errConnect)
 			historyScan.ErrorMessage = errConnect.Error()
 			newRecordHistoryScan(historyScan)
 			continue
