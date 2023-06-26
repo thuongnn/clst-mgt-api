@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 )
 
 type FWHandler struct {
@@ -46,7 +45,7 @@ func (fwh FWHandler) HandleScanAllRules(message *models.EventMessage) error {
 	}
 
 	for _, rule := range rules {
-		log.Printf("Trigger All: Scanning with rule id %s for CR (%s)\n", rule.Id.String(), utils.ArrToString(rule.CR))
+		log.Printf("Trigger All: Scanning with rule id %s for CR (%s)\n", rule.Id.Hex(), utils.ArrToString(rule.CR))
 		if rule.IsThroughProxy {
 			fwh.firewallScanThroughProxy(node, rule)
 		} else {
@@ -80,7 +79,7 @@ func (fwh FWHandler) HandleScanByRuleIds(message *models.EventMessage) error {
 	}
 
 	for _, rule := range rules {
-		log.Printf("Trigger by Id: Scanning with rule id %s for CR (%s)\n", rule.Id.String(), utils.ArrToString(rule.CR))
+		log.Printf("Trigger by Id: Scanning with rule id %s for CR (%s)\n", rule.Id.Hex(), utils.ArrToString(rule.CR))
 		if rule.IsThroughProxy {
 			fwh.firewallScanThroughProxy(node, rule)
 		} else {
@@ -131,10 +130,10 @@ func (fwh FWHandler) firewallScanThroughProxy(node *models.DBNode, rule *models.
 
 	proxy, _ := url.Parse(appConfig.ProxyScanUrl)
 	client := &http.Client{
+		Timeout: utils.TimeoutScan,
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(proxy),
 		},
-		Timeout: utils.TimeoutScan * time.Second,
 	}
 
 	newRecordHistoryScan := func(historyScan *models.HistoryScan) {
