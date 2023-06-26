@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -47,7 +46,7 @@ func (fwh FWHandler) HandleScanAllRules(message *models.EventMessage) error {
 	}
 
 	for _, rule := range rules {
-		log.Printf("Scanning with rule id %s for CR (%s)\n", rule.Id, strings.Trim(strings.Join(strings.Fields(fmt.Sprint(rule.CR)), ", "), "[]"))
+		log.Printf("Trigger All: Scanning with rule id %s for CR (%s)\n", rule.Id.String(), utils.ArrToString(rule.CR))
 		if rule.IsThroughProxy {
 			fwh.firewallScanThroughProxy(node, rule)
 		} else {
@@ -81,7 +80,7 @@ func (fwh FWHandler) HandleScanByRuleIds(message *models.EventMessage) error {
 	}
 
 	for _, rule := range rules {
-		log.Printf("Scanning with rule id %s for CR (%s)\n", rule.Id, strings.Trim(strings.Join(strings.Fields(fmt.Sprint(rule.CR)), ", "), "[]"))
+		log.Printf("Trigger by Id: Scanning with rule id %s for CR (%s)\n", rule.Id.String(), utils.ArrToString(rule.CR))
 		if rule.IsThroughProxy {
 			fwh.firewallScanThroughProxy(node, rule)
 		} else {
@@ -116,8 +115,8 @@ func (fwh FWHandler) firewallScan(node *models.DBNode, rule *models.DBRule) {
 				historyScan.Status = utils.StatusSuccessScan
 			}
 
-			if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id.String(), historyScan); errCreate != nil {
-				log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.String()))
+			if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id.Hex(), historyScan); errCreate != nil {
+				log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.Hex()))
 			}
 		}
 	}
@@ -139,8 +138,8 @@ func (fwh FWHandler) firewallScanThroughProxy(node *models.DBNode, rule *models.
 	}
 
 	newRecordHistoryScan := func(historyScan *models.HistoryScan) {
-		if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id.String(), historyScan); errCreate != nil {
-			log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.String()))
+		if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id.Hex(), historyScan); errCreate != nil {
+			log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.Hex()))
 		}
 	}
 

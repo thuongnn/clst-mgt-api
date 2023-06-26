@@ -42,7 +42,7 @@ func init() {
 	if err := mongoClient.Ping(ctx, readpref.Primary()); err != nil {
 		panic(err)
 	}
-	log.Println("MongoDB successfully connected..\n ")
+	log.Println("MongoDB successfully connected..")
 
 	// 👇 Connect to Redis
 	redisClient = redis.NewClient(&redis.Options{
@@ -53,7 +53,7 @@ func init() {
 	if _, err := redisClient.Ping(ctx).Result(); err != nil {
 		panic(err)
 	}
-	log.Println("Redis successfully connected..\n ")
+	log.Println("Redis successfully connected..")
 
 	// 👇 Connect to K8s cluster
 	kubeConfig, err := utils.GetKubeConfig(appConfig.Environment != config.DefaultEnvironment)
@@ -69,7 +69,7 @@ func init() {
 	if err := utils.K8SHealth(k8sClient, ctx); err != nil {
 		panic(err)
 	}
-	log.Println("Kubernetes API successfully connected..\n ")
+	log.Println("Kubernetes API successfully connected..")
 
 	//
 	msgHandler = handlers.NewMessageHandler(ctx)
