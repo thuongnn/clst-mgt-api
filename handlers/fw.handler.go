@@ -114,7 +114,7 @@ func (fwh FWHandler) firewallScan(node *models.DBNode, rule *models.DBRule) {
 				historyScan.Status = utils.StatusSuccessScan
 			}
 
-			if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id.Hex(), historyScan); errCreate != nil {
+			if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id, historyScan); errCreate != nil {
 				log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.Hex()))
 			}
 		}
@@ -137,7 +137,7 @@ func (fwh FWHandler) firewallScanThroughProxy(node *models.DBNode, rule *models.
 	}
 
 	newRecordHistoryScan := func(historyScan *models.HistoryScan) {
-		if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id.Hex(), historyScan); errCreate != nil {
+		if errCreate := fwh.ruleService.CreateHistoryScan(rule.Id, historyScan); errCreate != nil {
 			log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.Hex()))
 		}
 	}

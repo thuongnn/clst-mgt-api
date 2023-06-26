@@ -18,11 +18,13 @@ type RuleServiceImpl struct {
 	ctx            context.Context
 }
 
-func (r RuleServiceImpl) IsHistoryScanExitsWithNodeId(nodeId string) (bool, error) {
+func (r RuleServiceImpl) IsHistoryScanExits(nodeId, destAddress string, destPort int) (bool, error) {
 	filter := bson.M{
 		"history_scan": bson.M{
 			"$elemMatch": bson.M{
-				"node_id": nodeId,
+				"node_id":             nodeId,
+				"destination_address": destAddress,
+				"destination_port":    destPort,
 			},
 		},
 	}
@@ -209,25 +211,26 @@ func (r RuleServiceImpl) DeleteRule(id string) error {
 	return nil
 }
 
-func (r RuleServiceImpl) CreateHistoryScan(ruleId string, historyScan *models.HistoryScan) error {
+func (r RuleServiceImpl) CreateHistoryScan(ruleId primitive.ObjectID, historyScan *models.HistoryScan) error {
 	historyScan.UpdatedAt = time.Now()
-	obId, _ := primitive.ObjectIDFromHex(ruleId)
 
-	isExists, errCheck := r.IsHistoryScanExitsWithNodeId(historyScan.NodeId)
+	isExists, errCheck := r.IsHistoryScanExits(historyScan.NodeId, historyScan.DestinationAddress, historyScan.DestinationPort)
 	if errCheck != nil {
 		return errCheck
 	}
 
 	if !isExists {
-		filter := bson.D{{Key: "_id", Value: obId}}
+		filter := bson.D{{Key: "_id", Value: ruleId}}
 		update := bson.M{"$push": bson.M{"history_scan": historyScan}}
 		if _, err := r.ruleCollection.UpdateOne(r.ctx, filter, update); err != nil {
 			return err
 		}
 	} else {
 		filter := bson.M{
-			"_id":                  obId,
-			"history_scan.node_id": historyScan.NodeId,
+			"_id":                              ruleId,
+			"history_scan.node_id":             historyScan.NodeId,
+			"history_scan.destination_address": historyScan.DestinationAddress,
+			"history_scan.destination_port":    historyScan.DestinationPort,
 		}
 
 		update := bson.M{"$set": bson.M{
