@@ -1,8 +1,9 @@
 package models
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type DBRule struct {
@@ -28,7 +29,7 @@ type UpdateRule struct {
 	DestinationAddresses []string  `json:"destination_addresses,omitempty" bson:"destination_addresses,omitempty"`
 	DestinationPorts     []int     `json:"destination_ports,omitempty" bson:"destination_ports,omitempty"`
 	DestinationServices  []string  `json:"destination_services,omitempty" bson:"destination_services,omitempty"`
-	IsThroughProxy       bool      `json:"is_through_proxy,omitempty" bson:"is_through_proxy,omitempty"`
+	IsThroughProxy       bool      `json:"is_through_proxy,omitempty" bson:"is_through_proxy" default:"false"`
 	CR                   []int     `json:"cr,omitempty" bson:"cr,omitempty"`
 	IsActive             bool      `json:"is_active,omitempty" bson:"is_active,omitempty" default:"true"`
 	Description          string    `json:"description,omitempty" bson:"description,omitempty"`
