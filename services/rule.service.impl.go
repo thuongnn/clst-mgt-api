@@ -227,10 +227,14 @@ func (r RuleServiceImpl) CreateHistoryScan(ruleId primitive.ObjectID, historySca
 		}
 	} else {
 		filter := bson.M{
-			"_id":                              ruleId,
-			"history_scan.node_id":             historyScan.NodeId,
-			"history_scan.destination_address": historyScan.DestinationAddress,
-			"history_scan.destination_port":    historyScan.DestinationPort,
+			"_id": ruleId,
+			"history_scan": bson.M{
+				"$elemMatch": bson.M{
+					"node_id":             historyScan.NodeId,
+					"destination_address": historyScan.DestinationAddress,
+					"destination_port":    historyScan.DestinationPort,
+				},
+			},
 		}
 
 		update := bson.M{"$set": bson.M{
