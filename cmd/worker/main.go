@@ -113,8 +113,15 @@ func startHandleMessage() {
 			panic(err)
 		}
 
+		//go func(m *models.EventMessage) {
+		//	if errHandler := msgHandler.HandleMessage(m); errHandler != nil {
+		//		log.Println(errHandler)
+		//	}
+		//}(message)
+
 		if errHandler := msgHandler.HandleMessage(message); errHandler != nil {
 			log.Println(errHandler)
+			continue
 		}
 	}
 }

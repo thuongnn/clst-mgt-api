@@ -47,13 +47,12 @@ func (fwh FWHandler) HandleScanAllRules(message *models.EventMessage) error {
 	for _, rule := range rules {
 		log.Printf("Trigger All: Scanning with rule id %s for CR (%s)\n", rule.Id.Hex(), utils.ArrToString(rule.CR))
 		if rule.IsThroughProxy {
-			fwh.firewallScanThroughProxy(node, rule)
+			go fwh.firewallScanThroughProxy(node, rule)
 		} else {
-			fwh.firewallScan(node, rule)
+			go fwh.firewallScan(node, rule)
 		}
 	}
 
-	fmt.Println(rules)
 	return nil
 }
 
@@ -81,13 +80,12 @@ func (fwh FWHandler) HandleScanByRuleIds(message *models.EventMessage) error {
 	for _, rule := range rules {
 		log.Printf("Trigger by Id: Scanning with rule id %s for CR (%s)\n", rule.Id.Hex(), utils.ArrToString(rule.CR))
 		if rule.IsThroughProxy {
-			fwh.firewallScanThroughProxy(node, rule)
+			go fwh.firewallScanThroughProxy(node, rule)
 		} else {
-			fwh.firewallScan(node, rule)
+			go fwh.firewallScan(node, rule)
 		}
 	}
 
-	fmt.Println(rules)
 	return nil
 }
 
