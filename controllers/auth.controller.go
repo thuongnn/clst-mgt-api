@@ -89,9 +89,9 @@ func (ac *AuthController) SignInUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("access_token", accessToken, appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("refresh_token", refreshToken, appConfig.RefreshTokenMaxAge*60, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("logged_in", "true", appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, false)
+	utils.SetCookie(ctx, &utils.Cookie{Key: "accessToken", Value: accessToken, MaxAge: appConfig.AccessTokenMaxAge * 60})
+	utils.SetCookie(ctx, &utils.Cookie{Key: "refresh_token", Value: refreshToken, MaxAge: appConfig.RefreshTokenMaxAge * 60})
+	utils.SetCookie(ctx, &utils.Cookie{Key: "logged_in", Value: "true", MaxAge: appConfig.AccessTokenMaxAge * 60})
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": accessToken})
 }
@@ -126,18 +126,16 @@ func (ac *AuthController) RefreshAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("access_token", accessToken, appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("logged_in", "true", appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, false)
+	utils.SetCookie(ctx, &utils.Cookie{Key: "accessToken", Value: accessToken, MaxAge: appConfig.AccessTokenMaxAge * 60})
+	utils.SetCookie(ctx, &utils.Cookie{Key: "logged_in", Value: "true", MaxAge: appConfig.AccessTokenMaxAge * 60})
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": accessToken})
 }
 
 func (ac *AuthController) LogoutUser(ctx *gin.Context) {
-	appConfig, _ := config.LoadConfig(".")
-
-	ctx.SetCookie("access_token", "", -1, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("refresh_token", "", -1, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("logged_in", "", -1, "/", appConfig.Domain, false, true)
+	utils.SetCookie(ctx, &utils.Cookie{Key: "accessToken", Value: "", MaxAge: -1})
+	utils.SetCookie(ctx, &utils.Cookie{Key: "refresh_token", Value: "", MaxAge: -1})
+	utils.SetCookie(ctx, &utils.Cookie{Key: "logged_in", Value: "", MaxAge: -1})
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }

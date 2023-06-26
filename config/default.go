@@ -11,6 +11,7 @@ var (
 )
 
 type Config struct {
+	Debug         bool   `mapstructure:"DEBUG"`
 	DBUri         string `mapstructure:"MONGODB_URI"`
 	DBName        string `mapstructure:"MONGODB_DB_NAME"`
 	Port          string `mapstructure:"PORT"`

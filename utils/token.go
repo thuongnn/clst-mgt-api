@@ -3,6 +3,8 @@ package utils
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/thuongnn/clst-mgt-api/config"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -65,4 +67,19 @@ func ValidateToken(token string, publicKey string) (interface{}, error) {
 	}
 
 	return claims["sub"], nil
+}
+
+type Cookie struct {
+	Key    string
+	Value  string
+	MaxAge int
+}
+
+func SetCookie(ctx *gin.Context, cookie *Cookie) {
+	appConfig, _ := config.LoadConfig(".")
+	ctx.SetCookie(cookie.Key, cookie.Value, cookie.MaxAge, "/", appConfig.Domain, false, true)
+
+	if appConfig.Debug {
+		ctx.SetCookie(cookie.Key, cookie.Value, cookie.MaxAge, "/", "localhost", false, true)
+	}
 }
