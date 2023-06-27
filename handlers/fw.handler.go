@@ -31,12 +31,9 @@ func NewFWHandler(ctx context.Context, nodeService services.NodeService, ruleSer
 }
 
 func (fwh FWHandler) HandleScanAllRules(message *models.EventMessage) error {
-	k8sNode, err := fwh.nodeService.GetCurrentK8sNode()
-	if err != nil {
-		return err
-	}
+	nodeId, err := utils.GetCurrentNodeId(fwh.k8sClient, fwh.ctx)
 
-	node, err := fwh.nodeService.GetNodeByID(k8sNode.NodeId)
+	node, err := fwh.nodeService.GetNodeByID(nodeId)
 	if err != nil {
 		return err
 	}
@@ -59,9 +56,9 @@ func (fwh FWHandler) HandleScanAllRules(message *models.EventMessage) error {
 }
 
 func (fwh FWHandler) HandleScanByRuleIds(message *models.EventMessage) error {
-	k8sNode, err := fwh.nodeService.GetCurrentK8sNode()
+	nodeId, err := utils.GetCurrentNodeId(fwh.k8sClient, fwh.ctx)
 
-	node, err := fwh.nodeService.GetNodeByID(k8sNode.NodeId)
+	node, err := fwh.nodeService.GetNodeByID(nodeId)
 	if err != nil {
 		return err
 	}
