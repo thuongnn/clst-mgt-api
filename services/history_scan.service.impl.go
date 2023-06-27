@@ -23,10 +23,12 @@ func (h HistoryScanServiceImpl) CreateHistoryScan(historyScan *models.DBHistoryS
 	}
 
 	update := bson.M{"$set": bson.M{
-		"node_name":     historyScan.NodeName,
-		"error_message": historyScan.ErrorMessage,
-		"status":        historyScan.Status,
-		"updated_at":    historyScan.UpdatedAt,
+		"node_address":     historyScan.NodeAddress,
+		"is_through_proxy": historyScan.IsThroughProxy,
+		"node_name":        historyScan.NodeName,
+		"error_message":    historyScan.ErrorMessage,
+		"status":           historyScan.Status,
+		"updated_at":       historyScan.UpdatedAt,
 	}}
 
 	upsert := true // create new if not exists
