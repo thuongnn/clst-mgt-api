@@ -9,6 +9,7 @@ type NodeService interface {
 	GetRolesByNodeId(string) ([]string, error)
 	GetNodesByRoles([]string) ([]*models.DBNode, error)
 	GetNodes() ([]*models.DBNode, error)
+	GetCurrentK8sNode() (*models.K8sNode, error)
 	GetNodeByID(nodeId string) (*models.DBNode, error)
 	CreateNode(*models.DBNode) error
 	UpdateByNodeID(string, *models.DBNode) error

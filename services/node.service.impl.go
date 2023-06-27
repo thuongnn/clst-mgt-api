@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/thuongnn/clst-mgt-api/config"
 	"github.com/thuongnn/clst-mgt-api/models"
 	"github.com/thuongnn/clst-mgt-api/utils"
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,6 +12,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"log"
+	"os"
 	"strings"
 	"time"
 )
@@ -19,6 +22,51 @@ type NodeServiceImpl struct {
 	nodeCollection *mongo.Collection
 	k8sClient      *kubernetes.Clientset
 	ctx            context.Context
+}
+
+func (n NodeServiceImpl) GetCurrentK8sNode() (*models.K8sNode, error) {
+	appConfig, err := config.LoadConfig(".")
+	if err != nil {
+		log.Fatal("Could not load environment variables", err)
+	}
+
+	podName := os.Getenv("HOSTNAME")
+	pod, err := n.k8sClient.CoreV1().Pods(appConfig.Namespace).Get(n.ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	node, err := n.k8sClient.CoreV1().Nodes().Get(n.ctx, pod.Spec.NodeName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var k8sNode *models.K8sNode
+
+	k8sNode.NodeId = string(node.UID)
+	k8sNode.Name = node.Name
+
+	var roles []string
+	for label, _ := range node.Labels {
+		if strings.Contains(label, "node-role.kubernetes.io") {
+			roles = append(roles, strings.ReplaceAll(label, "node-role.kubernetes.io/", ""))
+		}
+	}
+	k8sNode.Roles = roles
+
+	for _, v := range node.Status.Addresses {
+		if v.Type == "ExternalIP" {
+			k8sNode.Address.ExternalIP = v.Address
+		}
+		if v.Type == "InternalIP" {
+			k8sNode.Address.InternalIP = v.Address
+		}
+		if v.Type == "Hostname" {
+			k8sNode.Address.Hostname = v.Address
+		}
+	}
+
+	return k8sNode, nil
 }
 
 func (n NodeServiceImpl) GetNodeByID(nodeId string) (*models.DBNode, error) {

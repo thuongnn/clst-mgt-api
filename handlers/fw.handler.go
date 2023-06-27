@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 type FWHandler struct {
@@ -30,12 +31,12 @@ func NewFWHandler(ctx context.Context, nodeService services.NodeService, ruleSer
 }
 
 func (fwh FWHandler) HandleScanAllRules(message *models.EventMessage) error {
-	nodeId, err := utils.GetCurrentNodeId(fwh.k8sClient, fwh.ctx)
+	k8sNode, err := fwh.nodeService.GetCurrentK8sNode()
 	if err != nil {
 		return err
 	}
 
-	node, err := fwh.nodeService.GetNodeByID(nodeId)
+	node, err := fwh.nodeService.GetNodeByID(k8sNode.NodeId)
 	if err != nil {
 		return err
 	}
@@ -58,12 +59,9 @@ func (fwh FWHandler) HandleScanAllRules(message *models.EventMessage) error {
 }
 
 func (fwh FWHandler) HandleScanByRuleIds(message *models.EventMessage) error {
-	nodeId, err := utils.GetCurrentNodeId(fwh.k8sClient, fwh.ctx)
-	if err != nil {
-		return err
-	}
+	k8sNode, err := fwh.nodeService.GetCurrentK8sNode()
 
-	node, err := fwh.nodeService.GetNodeByID(nodeId)
+	node, err := fwh.nodeService.GetNodeByID(k8sNode.NodeId)
 	if err != nil {
 		return err
 	}
@@ -97,9 +95,12 @@ func (fwh FWHandler) firewallScan(node *models.DBNode, rule *models.DBRule) {
 				RuleId:             rule.Id,
 				NodeName:           node.Name,
 				NodeId:             node.NodeId,
+				NodeAddress:        node.Address,
 				DestinationAddress: address,
 				DestinationPort:    port,
+				IsThroughProxy:     rule.IsThroughProxy,
 				Status:             utils.StatusErrorScan,
+				UpdatedAt:          time.Now(),
 			}
 
 			destinationHostPort := net.JoinHostPort(address, strconv.Itoa(port))
@@ -147,8 +148,11 @@ func (fwh FWHandler) firewallScanThroughProxy(node *models.DBNode, rule *models.
 			RuleId:             rule.Id,
 			NodeName:           node.Name,
 			NodeId:             node.NodeId,
+			NodeAddress:        node.Address,
 			DestinationAddress: address,
+			IsThroughProxy:     rule.IsThroughProxy,
 			Status:             utils.StatusErrorScan,
+			UpdatedAt:          time.Now(),
 		}
 
 		req, errNewRequest := http.NewRequest("GET", address, nil)
