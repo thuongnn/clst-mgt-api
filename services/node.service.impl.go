@@ -70,7 +70,7 @@ func (n NodeServiceImpl) GetRoles() ([]string, error) {
 		},
 	}
 
-	cursor, err := n.nodeCollection.Aggregate(context.TODO(), pipeline)
+	cursor, err := n.nodeCollection.Aggregate(n.ctx, pipeline)
 	if err != nil {
 		return nil, err
 	}

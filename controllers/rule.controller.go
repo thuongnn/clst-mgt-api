@@ -73,6 +73,16 @@ func (rc *RuleController) UpdateRule(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
+func (rc *RuleController) GetProjects(ctx *gin.Context) {
+	result, err := rc.ruleService.GetProjects()
+	if err != nil {
+		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": result})
+}
+
 func (rc *RuleController) GetRules(ctx *gin.Context) {
 	var currentPage = ctx.DefaultQuery("current_page", "1")
 	var pageSize = ctx.DefaultQuery("page_size", "10")

@@ -23,4 +23,7 @@ func (r *RuleRouteController) RuleRoute(rg *gin.RouterGroup, userService service
 	router.POST("/", r.ruleController.CreateRule)
 	router.PATCH("/:ruleId", r.ruleController.UpdateRule)
 	router.DELETE("/:ruleId", r.ruleController.DeleteRule)
+
+	// exception: used for get projects by all rules
+	rg.GET("/projects", r.ruleController.GetProjects).Use(middleware.DeserializeUser(userService))
 }

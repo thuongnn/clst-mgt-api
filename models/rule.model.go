@@ -14,9 +14,9 @@ type DBRule struct {
 	DestinationAddresses []string           `json:"destination_addresses,omitempty" bson:"destination_addresses,omitempty"`
 	DestinationPorts     []int              `json:"destination_ports,omitempty" bson:"destination_ports,omitempty"`
 	DestinationServices  []string           `json:"destination_services,omitempty" bson:"destination_services,omitempty"`
-	IsThroughProxy       bool               `json:"is_through_proxy,omitempty" bson:"is_through_proxy,omitempty"`
+	IsThroughProxy       bool               `json:"is_through_proxy" bson:"is_through_proxy" default:"false"`
 	CR                   []int              `json:"cr,omitempty" bson:"cr,omitempty"`
-	IsActive             bool               `json:"is_active,omitempty" bson:"is_active,omitempty" default:"true"`
+	IsActive             bool               `json:"is_active" bson:"is_active" default:"true"`
 	Description          string             `json:"description,omitempty" bson:"description,omitempty"`
 	CreateAt             time.Time          `json:"created_at,omitempty" bson:"created_at,omitempty"`
 	UpdatedAt            time.Time          `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
@@ -31,7 +31,7 @@ type UpdateRule struct {
 	DestinationServices  []string  `json:"destination_services,omitempty" bson:"destination_services,omitempty"`
 	IsThroughProxy       bool      `json:"is_through_proxy,omitempty" bson:"is_through_proxy" default:"false"`
 	CR                   []int     `json:"cr,omitempty" bson:"cr,omitempty"`
-	IsActive             bool      `json:"is_active,omitempty" bson:"is_active,omitempty" default:"true"`
+	IsActive             bool      `json:"is_active,omitempty" bson:"is_active" default:"true"`
 	Description          string    `json:"description,omitempty" bson:"description,omitempty"`
 	UpdatedAt            time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
 }

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/thuongnn/clst-mgt-api/models"
 	"github.com/thuongnn/clst-mgt-api/utils"
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,6 +19,56 @@ import (
 type RuleServiceImpl struct {
 	ruleCollection *mongo.Collection
 	ctx            context.Context
+}
+
+func (r RuleServiceImpl) GetProjects() ([]string, error) {
+	pipeline := []bson.M{
+		{
+			"$unwind": "$projects",
+		},
+		{
+			"$group": bson.M{
+				"_id":      nil,
+				"projects": bson.M{"$addToSet": "$projects"},
+			},
+		},
+		{
+			"$project": bson.M{
+				"_id":      0,
+				"projects": 1,
+			},
+		},
+	}
+
+	cursor, err := r.ruleCollection.Aggregate(r.ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(r.ctx)
+
+	var result bson.M
+	if cursor.Next(r.ctx) {
+		errDecode := cursor.Decode(&result)
+		if errDecode != nil {
+			return []string{}, errDecode
+		}
+	}
+
+	projectsRaw, ok := result["projects"].(primitive.A)
+	if !ok {
+		return []string{}, fmt.Errorf("Conversion to []interface{} failed. ")
+	}
+
+	var projects []string
+	for _, project := range projectsRaw {
+		if projectString, ok := project.(string); ok {
+			projects = append(projects, projectString)
+		} else {
+			return []string{}, fmt.Errorf("Conversion to string failed for role: ")
+		}
+	}
+
+	return projects, nil
 }
 
 func buildFilter(params *models.RuleSearchParams) bson.M {
