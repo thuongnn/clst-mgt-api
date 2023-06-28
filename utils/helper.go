@@ -4,6 +4,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"reflect"
 	"sort"
+	"strings"
 )
 
 func ToDoc(v interface{}) (doc *bson.D, err error) {
@@ -50,4 +51,14 @@ func AreArraysEqual(arr1, arr2 interface{}) bool {
 	default:
 		return false
 	}
+}
+
+func RemoveProtocol(address string) string {
+	if strings.HasPrefix(address, "https://") || strings.HasPrefix(address, "http://") {
+		result := strings.TrimPrefix(address, "https://")
+		result = strings.TrimPrefix(result, "http://")
+		return result
+	}
+
+	return address
 }

@@ -108,7 +108,7 @@ func (fwh FWHandler) firewallScan(node *models.DBNode, rule *models.DBRule) {
 				UpdatedAt:          time.Now(),
 			}
 
-			destinationHostPort := net.JoinHostPort(address, strconv.Itoa(port))
+			destinationHostPort := net.JoinHostPort(utils.RemoveProtocol(address), strconv.Itoa(port))
 			conn, err := net.DialTimeout("tcp", destinationHostPort, utils.TimeoutScan)
 			if err != nil || conn == nil {
 				log.Printf("Rule scan with node %s connection to %s not opened\n", node.Name, destinationHostPort)
