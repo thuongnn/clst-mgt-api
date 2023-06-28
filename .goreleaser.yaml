@@ -64,17 +64,17 @@ dockers:
       - "--build-arg=BINARY_NAME=worker"
       - "--platform=linux/amd64"
 
-archives:
-  - format: tar.gz
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    wrap_in_directory: true
-    files:
-      - README.md
-      - example.env
-      - Makefile
-    builds_info:
-      group: root
-      owner: root
-      mode: 0644
-      mtime: 2008-01-02T15:04:05Z
+#archives:
+#  - format: tar.gz
+#    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+#    wrap_in_directory: true
+#    files:
+#      - README.md
+#      - example.env
+#      - Makefile
+#    builds_info:
+#      group: root
+#      owner: root
+#      mode: 0644
+#      mtime: 2008-01-02T15:04:05Z
 
