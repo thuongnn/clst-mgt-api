@@ -48,6 +48,15 @@ type RuleListResponse struct {
 	Pagination *Pagination `json:"pagination"`
 }
 
+type RuleSearchParams struct {
+	CurrentPage               int    `json:"current_page"`
+	PageSize                  int    `json:"page_size"`
+	RoleKeyword               string `json:"role_keyword"`
+	DestinationAddressKeyword string `json:"destination_address_keyword"`
+	CRKeyword                 string `json:"cr_keyword"`
+	ProjectKeyword            string `json:"project_keyword"`
+}
+
 type DeleteRule struct {
 	ids []string
 }

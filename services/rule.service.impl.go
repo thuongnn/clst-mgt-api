@@ -10,6 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"math"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -18,45 +20,80 @@ type RuleServiceImpl struct {
 	ctx            context.Context
 }
 
-func (r RuleServiceImpl) GetRules(page int, limit int) (*models.RuleListResponse, error) {
-	if page == 0 {
-		page = 1
+func buildFilter(params *models.RuleSearchParams) bson.M {
+	// 👇 Build the filter based on the provided parameters
+	filter := bson.M{}
+
+	notEmpty := func(s string) bool {
+		return strings.TrimSpace(s) != ""
 	}
 
-	if limit == 0 {
-		limit = 10
+	if notEmpty(params.RoleKeyword) {
+		filter["roles"] = bson.M{"$regex": params.RoleKeyword, "$options": "i"}
 	}
 
-	// Initialize totalPages variable
-	totalPages := 0
+	if notEmpty(params.DestinationAddressKeyword) {
+		filter["destination_addresses"] = bson.M{"$regex": params.DestinationAddressKeyword, "$options": "i"}
+	}
 
-	// Calculate the total number of pages
-	count, err := r.ruleCollection.CountDocuments(r.ctx, bson.M{})
+	if intCRNum, err := strconv.Atoi(params.CRKeyword); err == nil {
+		filter["cr"] = bson.M{"$in": []int{intCRNum}}
+	}
+
+	if notEmpty(params.ProjectKeyword) {
+		filter["projects"] = bson.M{"$regex": params.ProjectKeyword, "$options": "i"}
+	}
+
+	return filter
+}
+
+func (r RuleServiceImpl) GetRules(params *models.RuleSearchParams) (*models.RuleListResponse, error) {
+	// Set default values for page and limit
+	page := params.CurrentPage
+	limit := params.PageSize
+
+	// Build the filter based on the provided parameters
+	filter := buildFilter(params)
+
+	// 👇 Calculate the total number of pages
+	count, err := r.ruleCollection.CountDocuments(r.ctx, filter)
 	if err != nil {
 		return nil, err
 	}
 
-	if count > 0 {
-		totalPages = int(math.Ceil(float64(count) / float64(limit)))
+	// In case there are no documents matching the filter
+	if count == 0 {
+		return &models.RuleListResponse{
+			Data:       []*models.DBRule{},
+			Pagination: &models.Pagination{},
+		}, nil
 	}
 
+	// Initialize totalPages variable with count & limit
+	totalPages := int(math.Ceil(float64(count) / float64(limit)))
+
+	// Check page is not greater than totalPages, get minimum value between page and totalPages
 	if page > totalPages {
 		page = totalPages
 	}
 
-	skip := (page - 1) * limit
-
+	// build find options with:
+	// + Limit	: limit number of documents
+	// + Skip	: skip documents in rage for pagination
+	// + Sort	: sort by updated_at
 	opt := options.FindOptions{}
 	opt.SetLimit(int64(limit))
-	opt.SetSkip(int64(skip))
-	opt.SetSort(bson.M{"created_at": -1})
+	opt.SetSkip(int64((page - 1) * limit))
+	opt.SetSort(bson.M{"updated_at": -1})
 
-	cursor, err := r.ruleCollection.Find(r.ctx, bson.M{}, &opt)
+	// 👇 Starting to finding from DB with filter & pagination
+	cursor, err := r.ruleCollection.Find(r.ctx, filter, &opt)
 	if err != nil {
 		return nil, err
 	}
 	defer cursor.Close(r.ctx)
 
+	// Parsing result
 	var rules []*models.DBRule
 	for cursor.Next(r.ctx) {
 		rule := &models.DBRule{}

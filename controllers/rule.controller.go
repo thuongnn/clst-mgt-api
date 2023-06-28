@@ -70,7 +70,15 @@ func (rc *RuleController) GetRules(ctx *gin.Context) {
 		return
 	}
 
-	result, err := rc.ruleService.GetRules(intCurrentPage, intPageSize)
+	result, err := rc.ruleService.GetRules(&models.RuleSearchParams{
+		CurrentPage:               intCurrentPage,
+		PageSize:                  intPageSize,
+		RoleKeyword:               ctx.Query("role_keyword"),
+		DestinationAddressKeyword: ctx.Query("destination_address_keyword"),
+		CRKeyword:                 ctx.Query("cr_keyword"),
+		ProjectKeyword:            ctx.Query("project_keyword"),
+	})
+
 	if err != nil {
 		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
 		return
