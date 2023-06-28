@@ -6,6 +6,7 @@ import (
 
 type RuleService interface {
 	GetRules(params *models.RuleSearchParams) (*models.RuleListResponse, error)
+	GetRuleById(id string) (*models.DBRule, error)
 	GetRulesByRoles(roles []string) ([]*models.DBRule, error)
 	GetRulesByIdsAndRoles(ids []string, roles []string) ([]*models.DBRule, error)
 	CreateRule(rule *models.DBRule) error

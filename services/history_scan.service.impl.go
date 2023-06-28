@@ -7,11 +7,25 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 )
 
 type HistoryScanServiceImpl struct {
 	historyScanCollection *mongo.Collection
 	ctx                   context.Context
+}
+
+func (h HistoryScanServiceImpl) CleanUpHistoryScanByRuleId(ruleId string) error {
+	obId, _ := primitive.ObjectIDFromHex(ruleId)
+	filter := bson.M{"rule_id": obId}
+
+	deleteResult, err := h.historyScanCollection.DeleteMany(h.ctx, filter)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Deleted %v documents with rule id: %s", deleteResult.DeletedCount, ruleId)
+	return nil
 }
 
 func (h HistoryScanServiceImpl) CreateHistoryScan(historyScan *models.DBHistoryScan) error {

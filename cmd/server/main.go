@@ -127,17 +127,17 @@ func init() {
 	NodeController = controllers.NewNodeController(nodeService)
 	NodeRouteController = routes.NewNodeControllerRoute(NodeController)
 
-	// 👇 Rules
-	ruleCollection = mongoClient.Database(appConfig.DBName).Collection("rules")
-	ruleService = services.NewRuleService(ruleCollection, ctx)
-	RuleController = controllers.NewRuleController(ruleService)
-	RuleRouteController = routes.NewRuleControllerRoute(RuleController)
-
 	// 👇 History Scan
 	historyScanCollection = mongoClient.Database(appConfig.DBName).Collection("history_scan")
 	historyScanService = services.NewHistoryScanService(historyScanCollection, ctx)
 	HistoryScanController = controllers.NewHistoryScanController(historyScanService)
 	HistoryScanRouteController = routes.NewHistoryScanControllerRoute(HistoryScanController)
+
+	// 👇 Rules
+	ruleCollection = mongoClient.Database(appConfig.DBName).Collection("rules")
+	ruleService = services.NewRuleService(ruleCollection, ctx)
+	RuleController = controllers.NewRuleController(ruleService, historyScanService)
+	RuleRouteController = routes.NewRuleControllerRoute(RuleController)
 
 	// 👇 Triggers
 	triggerService = services.NewTriggerService(redisClient, ctx)

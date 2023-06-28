@@ -119,6 +119,23 @@ func (r RuleServiceImpl) GetRules(params *models.RuleSearchParams) (*models.Rule
 	}, nil
 }
 
+func (r RuleServiceImpl) GetRuleById(id string) (*models.DBRule, error) {
+	obId, _ := primitive.ObjectIDFromHex(id)
+	filter := bson.M{"_id": obId}
+
+	res := r.ruleCollection.FindOne(r.ctx, filter)
+	if res.Err() != nil {
+		return nil, res.Err()
+	}
+
+	var rule = &models.DBRule{}
+	if errDecode := res.Decode(rule); errDecode != nil {
+		return nil, errDecode
+	}
+
+	return rule, nil
+}
+
 func (r RuleServiceImpl) GetRulesByRoles(roles []string) ([]*models.DBRule, error) {
 	filter := bson.M{
 		"roles": bson.M{"$in": roles},

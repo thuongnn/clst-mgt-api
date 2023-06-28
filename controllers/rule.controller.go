@@ -4,17 +4,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/thuongnn/clst-mgt-api/models"
 	"github.com/thuongnn/clst-mgt-api/services"
+	"github.com/thuongnn/clst-mgt-api/utils"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
 type RuleController struct {
-	ruleService services.RuleService
+	ruleService        services.RuleService
+	historyScanService services.HistoryScanService
 }
 
-func NewRuleController(ruleService services.RuleService) RuleController {
-	return RuleController{ruleService}
+func NewRuleController(ruleService services.RuleService, historyScanService services.HistoryScanService) RuleController {
+	return RuleController{ruleService, historyScanService}
 }
 
 func (rc *RuleController) CreateRule(ctx *gin.Context) {
@@ -42,6 +44,12 @@ func (rc *RuleController) UpdateRule(ctx *gin.Context) {
 		return
 	}
 
+	curRule, err := rc.ruleService.GetRuleById(ruleId)
+	if err != nil {
+		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+
 	if err := rc.ruleService.UpdateRule(ruleId, rule); err != nil {
 		if strings.Contains(err.Error(), "no document") {
 			ctx.JSON(http.StatusNotFound, gin.H{"status": "fail", "message": err.Error()})
@@ -49,6 +57,17 @@ func (rc *RuleController) UpdateRule(ctx *gin.Context) {
 		}
 		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
 		return
+	}
+
+	// Only if these fields (IsThroughProxy, Roles, DestinationAddresses, DestinationPorts) is required to clean up history scanned
+	if rule.IsThroughProxy != curRule.IsThroughProxy ||
+		!utils.AreArraysEqual(rule.Roles, curRule.Roles) ||
+		!utils.AreArraysEqual(rule.DestinationAddresses, curRule.DestinationAddresses) ||
+		!utils.AreArraysEqual(rule.DestinationPorts, curRule.DestinationPorts) {
+		if err := rc.historyScanService.CleanUpHistoryScanByRuleId(ruleId); err != nil {
+			ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
+			return
+		}
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
@@ -100,6 +119,11 @@ func (rc *RuleController) DeleteRule(ctx *gin.Context) {
 			ctx.JSON(http.StatusNotFound, gin.H{"status": "fail", "message": err.Error()})
 			return
 		}
+		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+
+	if err := rc.historyScanService.CleanUpHistoryScanByRuleId(ruleId); err != nil {
 		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
 		return
 	}
