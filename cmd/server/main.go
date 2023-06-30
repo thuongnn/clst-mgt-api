@@ -84,9 +84,9 @@ func init() {
 
 	// Connect to Redis
 	redisClient = redis.NewClient(&redis.Options{
-		DB:   0,
-		Addr: appConfig.RedisUri,
-		//Password: appConfig.RedisPassword,
+		DB:       0,
+		Addr:     appConfig.RedisUri,
+		Password: appConfig.RedisPassword,
 	})
 	if _, err := redisClient.Ping(ctx).Result(); err != nil {
 		panic(err)
