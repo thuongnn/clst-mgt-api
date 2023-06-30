@@ -50,7 +50,7 @@ func init() {
 	redisClient = redis.NewClient(&redis.Options{
 		DB:   0,
 		Addr: appConfig.RedisUri,
-		//Password: appConfig.RedisPassword,
+		Password: appConfig.RedisPassword,
 	})
 	if _, err := redisClient.Ping(ctx).Result(); err != nil {
 		panic(err)
