@@ -26,6 +26,7 @@ var (
 	mongoClient *mongo.Client
 	redisClient *redis.Client
 	k8sClient   *kubernetes.Clientset
+	appConfig   *config.Config
 
 	userService         services.UserService
 	UserController      controllers.UserController
@@ -61,7 +62,8 @@ var (
 )
 
 func init() {
-	appConfig, err := config.LoadConfig(".")
+	var err error
+	appConfig, err = config.LoadConfig(".")
 	if err != nil {
 		log.Fatal("Could not load environment variables", err)
 	}
@@ -81,8 +83,6 @@ func init() {
 	fmt.Println("MongoDB successfully connected...")
 
 	// Connect to Redis
-	fmt.Println(appConfig.RedisUri)
-	fmt.Println(appConfig.RedisPassword)
 	redisClient = redis.NewClient(&redis.Options{
 		DB:   0,
 		Addr: appConfig.RedisUri,
@@ -148,20 +148,15 @@ func init() {
 }
 
 func main() {
-	appConfig, err := config.LoadConfig(".")
-	if err != nil {
-		log.Fatal("Could not load config", err)
-	}
-
 	defer mongoClient.Disconnect(ctx)
 	defer redisClient.Close()
 
-	startGinServer(appConfig)
+	startGinServer()
 }
 
-func startGinServer(config config.Config) {
+func startGinServer() {
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{config.Origin}
+	corsConfig.AllowOrigins = []string{appConfig.Origin}
 	corsConfig.AllowCredentials = true
 
 	server.Use(cors.New(corsConfig))
@@ -178,5 +173,5 @@ func startGinServer(config config.Config) {
 	HistoryScanRouteController.HistoryScanRoute(router, userService)
 	TriggerRouteController.TriggerRoute(router, userService)
 
-	log.Fatal(server.Run(":" + config.Port))
+	log.Fatal(server.Run(":" + appConfig.Port))
 }

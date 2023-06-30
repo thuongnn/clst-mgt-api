@@ -1,6 +1,7 @@
 package config
 
 import (
+	"sync"
 	"time"
 
 	"github.com/spf13/viper"
@@ -9,6 +10,11 @@ import (
 var (
 	DefaultEnvironment = "dev"
 	DefaultNamespace   = "default"
+
+	once          sync.Once
+	onceMu        sync.Mutex
+	appConfig     *Config
+	loadConfigErr error
 )
 
 type Config struct {
@@ -41,21 +47,24 @@ type Config struct {
 	SMTPUser  string `mapstructure:"SMTP_USER"`
 }
 
-func LoadConfig(path string) (config Config, err error) {
-	viper.AddConfigPath(path)
-	viper.SetConfigType("env")
-	viper.SetConfigName(".env")
+func LoadConfig(path string) (*Config, error) {
+	once.Do(func() {
+		viper.AddConfigPath(path)
+		viper.SetConfigType("env")
+		viper.SetConfigName(".env")
 
-	viper.SetDefault("Environment", DefaultEnvironment)
-	viper.SetDefault("Namespace", DefaultNamespace)
+		viper.SetDefault("Environment", DefaultEnvironment)
+		viper.SetDefault("Namespace", DefaultNamespace)
 
-	viper.AutomaticEnv()
+		viper.AutomaticEnv()
 
-	err = viper.ReadInConfig()
-	if err != nil {
-		return
-	}
+		loadConfigErr = viper.ReadInConfig()
+		if loadConfigErr != nil {
+			return
+		}
 
-	err = viper.Unmarshal(&config)
-	return
+		loadConfigErr = viper.Unmarshal(&appConfig)
+	})
+
+	return appConfig, loadConfigErr
 }

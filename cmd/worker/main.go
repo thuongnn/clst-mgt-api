@@ -20,12 +20,14 @@ var (
 	mongoClient *mongo.Client
 	redisClient *redis.Client
 	k8sClient   *kubernetes.Clientset
+	appConfig   *config.Config
 
 	msgHandler *handlers.MessageHandler
 )
 
 func init() {
-	appConfig, err := config.LoadConfig(".")
+	var err error
+	appConfig, err = config.LoadConfig(".")
 	if err != nil {
 		log.Fatal("Could not load environment variables", err)
 	}
@@ -76,11 +78,6 @@ func init() {
 }
 
 func main() {
-	appConfig, err := config.LoadConfig(".")
-	if err != nil {
-		log.Fatal("Could not load environment variables", err)
-	}
-
 	defer mongoClient.Disconnect(ctx)
 	defer redisClient.Close()
 
@@ -116,12 +113,6 @@ func startHandleMessage() {
 		if err != nil {
 			panic(err)
 		}
-
-		//go func(m *models.EventMessage) {
-		//	if errHandler := msgHandler.HandleMessage(m); errHandler != nil {
-		//		log.Println(errHandler)
-		//	}
-		//}(message)
 
 		if errHandler := msgHandler.HandleMessage(message); errHandler != nil {
 			log.Println(errHandler)
