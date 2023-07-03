@@ -52,6 +52,8 @@ func (r RuleServiceImpl) GetProjects() ([]string, error) {
 		if errDecode != nil {
 			return []string{}, errDecode
 		}
+	} else {
+		return []string{}, nil
 	}
 
 	projectsRaw, ok := result["projects"].(primitive.A)
