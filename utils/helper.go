@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -67,33 +68,35 @@ func RemoveProtocol(address string) string {
 }
 
 func PortParser(rawPort string) (*models.Port, error) {
-	// Regular expressions patterns
 	tcpPattern := `^tcp/(\d+)$`
 	udpPattern := `^udp/(\d+)$`
 
-	if match, _ := regexp.MatchString(`^\d+$`, rawPort); match {
-		// Check is a number or not
+	normalizedPort := strings.ToLower(strings.TrimSpace(rawPort))
+
+	if portNumber, err := strconv.Atoi(normalizedPort); err == nil {
 		return &models.Port{
-			Number:   rawPort,
+			Number:   strconv.Itoa(portNumber),
 			Protocol: "tcp",
 		}, nil
-	} else if match, _ := regexp.MatchString(tcpPattern, rawPort); match {
-		// Extract TCP port number
+	} else if strings.HasPrefix(normalizedPort, "tcp/") {
 		re := regexp.MustCompile(tcpPattern)
-		var subMatches = re.FindStringSubmatch(rawPort)
-		return &models.Port{
-			Number:   subMatches[1],
-			Protocol: "tcp",
-		}, nil
-	} else if match, _ := regexp.MatchString(udpPattern, rawPort); match {
-		// Extract UDP port number
+		subMatches := re.FindStringSubmatch(normalizedPort)
+		if len(subMatches) > 1 {
+			return &models.Port{
+				Number:   subMatches[1],
+				Protocol: "tcp",
+			}, nil
+		}
+	} else if strings.HasPrefix(normalizedPort, "udp/") {
 		re := regexp.MustCompile(udpPattern)
-		var subMatches = re.FindStringSubmatch(rawPort)
-		return &models.Port{
-			Number:   subMatches[1],
-			Protocol: "udp",
-		}, nil
-	} else {
-		return nil, fmt.Errorf("The port number doesn't match any protocol pattern! ")
+		subMatches := re.FindStringSubmatch(normalizedPort)
+		if len(subMatches) > 1 {
+			return &models.Port{
+				Number:   subMatches[1],
+				Protocol: "udp",
+			}, nil
+		}
 	}
+
+	return nil, fmt.Errorf("The port number doesn't match any protocol pattern! ")
 }
