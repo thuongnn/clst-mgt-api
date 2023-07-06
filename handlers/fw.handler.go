@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"github.com/antelman107/net-wait-go/wait"
 	"github.com/go-redis/redis/v8"
 	"github.com/thuongnn/clst-mgt-api/config"
 	"github.com/thuongnn/clst-mgt-api/models"
@@ -125,15 +126,37 @@ func (fwh FWHandler) firewallScan(node *models.DBNode, rule *models.DBRule) {
 			destinationHostPort := net.JoinHostPort(utils.RemoveProtocol(address), portParser.Number)
 
 			// start to scan
-			conn, err := net.DialTimeout(portParser.Protocol, destinationHostPort, utils.TimeoutScan)
-			if err != nil || conn == nil {
-				log.Printf("Rule scan with node %s failed to connect to %s\n", node.Name, destinationHostPort)
-				if err != nil {
-					historyScan.ErrorMessage = err.Error()
+			if portParser.Protocol == "tcp" {
+				conn, err := net.DialTimeout(portParser.Protocol, destinationHostPort, utils.TimeoutScan)
+				if err != nil || conn == nil {
+					log.Printf("Rule scan with node %s failed to connect to %s\n", node.Name, destinationHostPort)
+					if err != nil {
+						historyScan.ErrorMessage = err.Error()
+					}
+				} else {
+					log.Printf("Rule scan with node %s successfully connected to %s\n", node.Name, destinationHostPort)
+					historyScan.Status = utils.StatusSuccessScan
 				}
 			} else {
-				log.Printf("Rule scan with node %s successfully connected to %s\n", node.Name, destinationHostPort)
-				historyScan.Status = utils.StatusSuccessScan
+				// handle udp
+				e := wait.New(
+					wait.WithProto("udp"),
+					wait.WithUDPPacket([]byte{
+						0xFF, 0xFF, 0xFF, 0xFF, 0x54, 0x53,
+						0x6F, 0x75, 0x72, 0x63, 0x65, 0x20,
+						0x45, 0x6E, 0x67, 0x69, 0x6E, 0x65,
+						0x20, 0x51, 0x75, 0x65, 0x72, 0x79,
+						0x00}),
+					wait.WithDebug(true),
+					wait.WithDeadline(utils.TimeoutScan),
+				)
+				if !e.Do([]string{destinationHostPort}) {
+					log.Printf("udp services are not available")
+					historyScan.ErrorMessage = "udp services are not available"
+				} else {
+					log.Printf("Rule scan with node %s successfully connected to %s\n", node.Name, destinationHostPort)
+					historyScan.Status = utils.StatusSuccessScan
+				}
 			}
 
 			fwh.createHistoryScan(historyScan, rule.Id.Hex())
