@@ -68,13 +68,21 @@ func RemoveProtocol(address string) string {
 
 func PortParser(rawPort string) (*models.Port, error) {
 	// Regular expressions patterns
-	tcpPattern := `^\d+$`
+	tcpPattern := `^tcp/(\d+)$`
 	udpPattern := `^udp/(\d+)$`
 
-	if match, _ := regexp.MatchString(tcpPattern, rawPort); match {
-		// Check for TCP port
+	if match, _ := regexp.MatchString(`^\d+$`, rawPort); match {
+		// Check is a number or not
 		return &models.Port{
 			Number:   rawPort,
+			Protocol: "tcp",
+		}, nil
+	} else if match, _ := regexp.MatchString(tcpPattern, rawPort); match {
+		// Extract TCP port number
+		re := regexp.MustCompile(tcpPattern)
+		var subMatches = re.FindStringSubmatch(rawPort)
+		return &models.Port{
+			Number:   subMatches[1],
 			Protocol: "tcp",
 		}, nil
 	} else if match, _ := regexp.MatchString(udpPattern, rawPort); match {
