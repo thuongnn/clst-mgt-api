@@ -12,7 +12,7 @@ type DBRule struct {
 	Roles                []string           `json:"roles,omitempty" bson:"roles,omitempty"`
 	Projects             []string           `json:"projects,omitempty" bson:"projects,omitempty"`
 	DestinationAddresses []string           `json:"destination_addresses,omitempty" bson:"destination_addresses,omitempty"`
-	DestinationPorts     []int              `json:"destination_ports,omitempty" bson:"destination_ports,omitempty"`
+	DestinationPorts     []string           `json:"destination_ports,omitempty" bson:"destination_ports,omitempty"`
 	DestinationServices  []string           `json:"destination_services,omitempty" bson:"destination_services,omitempty"`
 	IsThroughProxy       bool               `json:"is_through_proxy" bson:"is_through_proxy" default:"false"`
 	CR                   []int              `json:"cr,omitempty" bson:"cr,omitempty"`
@@ -27,7 +27,7 @@ type UpdateRule struct {
 	Roles                []string  `json:"roles,omitempty" bson:"roles,omitempty"`
 	Projects             []string  `json:"projects,omitempty" bson:"projects,omitempty"`
 	DestinationAddresses []string  `json:"destination_addresses,omitempty" bson:"destination_addresses,omitempty"`
-	DestinationPorts     []int     `json:"destination_ports,omitempty" bson:"destination_ports,omitempty"`
+	DestinationPorts     []string  `json:"destination_ports,omitempty" bson:"destination_ports,omitempty"`
 	DestinationServices  []string  `json:"destination_services,omitempty" bson:"destination_services,omitempty"`
 	IsThroughProxy       bool      `json:"is_through_proxy,omitempty" bson:"is_through_proxy" default:"false"`
 	CR                   []int     `json:"cr,omitempty" bson:"cr,omitempty"`
@@ -57,6 +57,7 @@ type RuleSearchParams struct {
 	ProjectKeyword            string `json:"project_keyword"`
 }
 
-type DeleteRule struct {
-	ids []string
+type Port struct {
+	Number   string
+	Protocol string
 }

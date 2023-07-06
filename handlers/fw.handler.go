@@ -13,7 +13,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 )
 
@@ -93,6 +92,12 @@ func (fwh FWHandler) HandleScanByRuleIds(message *models.EventMessage) error {
 	return nil
 }
 
+func (fwh FWHandler) createHistoryScan(historyScan *models.DBHistoryScan, ruleID string) {
+	if err := fwh.historyScanService.CreateHistoryScan(historyScan); err != nil {
+		log.Printf("Error creating history scan with rule ID: %s\n", ruleID)
+	}
+}
+
 func (fwh FWHandler) firewallScan(node *models.DBNode, rule *models.DBRule) {
 	for _, address := range rule.DestinationAddresses {
 		for _, port := range rule.DestinationPorts {
@@ -108,21 +113,30 @@ func (fwh FWHandler) firewallScan(node *models.DBNode, rule *models.DBRule) {
 				UpdatedAt:          time.Now(),
 			}
 
-			destinationHostPort := net.JoinHostPort(utils.RemoveProtocol(address), strconv.Itoa(port))
-			conn, err := net.DialTimeout("tcp", destinationHostPort, utils.TimeoutScan)
+			portParser, err := utils.PortParser(port)
+			if err != nil {
+				log.Printf("Cannot parse the port %s: %v\n", port, err)
+				historyScan.ErrorMessage = fmt.Sprintf("Cannot parse the port %s: %v", port, err)
+				fwh.createHistoryScan(historyScan, rule.Id.Hex())
+				continue
+			}
+
+			// build destination host port
+			destinationHostPort := net.JoinHostPort(utils.RemoveProtocol(address), portParser.Number)
+
+			// start to scan
+			conn, err := net.DialTimeout(portParser.Protocol, destinationHostPort, utils.TimeoutScan)
 			if err != nil || conn == nil {
-				log.Printf("Rule scan with node %s connection to %s not opened\n", node.Name, destinationHostPort)
+				log.Printf("Rule scan with node %s failed to connect to %s\n", node.Name, destinationHostPort)
 				if err != nil {
 					historyScan.ErrorMessage = err.Error()
 				}
 			} else {
-				log.Printf("Rule scan with node %s connection to %s opened\n", node.Name, destinationHostPort)
+				log.Printf("Rule scan with node %s successfully connected to %s\n", node.Name, destinationHostPort)
 				historyScan.Status = utils.StatusSuccessScan
 			}
 
-			if errCreate := fwh.historyScanService.CreateHistoryScan(historyScan); errCreate != nil {
-				log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.Hex()))
-			}
+			fwh.createHistoryScan(historyScan, rule.Id.Hex())
 		}
 	}
 }
@@ -142,12 +156,6 @@ func (fwh FWHandler) firewallScanThroughProxy(node *models.DBNode, rule *models.
 		},
 	}
 
-	newRecordHistoryScan := func(historyScan *models.DBHistoryScan) {
-		if errCreate := fwh.historyScanService.CreateHistoryScan(historyScan); errCreate != nil {
-			log.Println(fmt.Errorf("Error create history scan with rule id: %s \n ", rule.Id.Hex()))
-		}
-	}
-
 	for _, address := range rule.DestinationAddresses {
 		historyScan := &models.DBHistoryScan{
 			RuleId:             rule.Id,
@@ -164,7 +172,7 @@ func (fwh FWHandler) firewallScanThroughProxy(node *models.DBNode, rule *models.
 		if errNewRequest != nil {
 			log.Printf("Failed to create request: %v\n", errNewRequest)
 			historyScan.ErrorMessage = errNewRequest.Error()
-			newRecordHistoryScan(historyScan)
+			fwh.createHistoryScan(historyScan, rule.Id.Hex())
 			continue
 		}
 
@@ -172,7 +180,7 @@ func (fwh FWHandler) firewallScanThroughProxy(node *models.DBNode, rule *models.
 		if errConnect != nil {
 			log.Printf("Failed connect to %s via proxy: %v\n", address, errConnect)
 			historyScan.ErrorMessage = errConnect.Error()
-			newRecordHistoryScan(historyScan)
+			fwh.createHistoryScan(historyScan, rule.Id.Hex())
 			continue
 		}
 
@@ -184,7 +192,7 @@ func (fwh FWHandler) firewallScanThroughProxy(node *models.DBNode, rule *models.
 			historyScan.Status = utils.StatusSuccessScan
 		}
 
-		newRecordHistoryScan(historyScan)
+		fwh.createHistoryScan(historyScan, rule.Id.Hex())
 		resp.Body.Close()
 	}
 }

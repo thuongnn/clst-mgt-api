@@ -1,8 +1,11 @@
 package utils
 
 import (
+	"fmt"
+	"github.com/thuongnn/clst-mgt-api/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -61,4 +64,28 @@ func RemoveProtocol(address string) string {
 	}
 
 	return address
+}
+
+func PortParser(rawPort string) (*models.Port, error) {
+	// Regular expressions patterns
+	tcpPattern := `^\d+$`
+	udpPattern := `^udp/(\d+)$`
+
+	if match, _ := regexp.MatchString(tcpPattern, rawPort); match {
+		// Check for TCP port
+		return &models.Port{
+			Number:   rawPort,
+			Protocol: "tcp",
+		}, nil
+	} else if match, _ := regexp.MatchString(udpPattern, rawPort); match {
+		// Extract UDP port number
+		re := regexp.MustCompile(udpPattern)
+		var subMatches = re.FindStringSubmatch(rawPort)
+		return &models.Port{
+			Number:   subMatches[1],
+			Protocol: "udp",
+		}, nil
+	} else {
+		return nil, fmt.Errorf("The port number doesn't match any protocol pattern! ")
+	}
 }
