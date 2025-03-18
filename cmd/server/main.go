@@ -59,6 +59,12 @@ var (
 	triggerService         services.TriggerService
 	TriggerController      controllers.TriggerController
 	TriggerRouteController routes.TriggerRouteController
+
+	// 👇 Create the Auth Method Variables
+	authMethodService      services.AuthMethodService
+	AuthMethodController   controllers.AuthMethodController
+	authMethodCollection   *mongo.Collection
+	SettingRouteController routes.SettingRouteController
 )
 
 func init() {
@@ -144,6 +150,12 @@ func init() {
 	TriggerController = controllers.NewTriggerController(triggerService)
 	TriggerRouteController = routes.NewTriggerControllerRoute(TriggerController)
 
+	// 👇 Auth Method
+	authMethodCollection = mongoClient.Database(appConfig.DBName).Collection("auth_method")
+	authMethodService = services.NewAuthMethodService(authMethodCollection, ctx)
+	AuthMethodController = controllers.NewAuthMethodController(authMethodService)
+	SettingRouteController = routes.NewSettingControllerRoute(AuthMethodController)
+
 	server = gin.Default()
 }
 
@@ -172,6 +184,7 @@ func startGinServer() {
 	RuleRouteController.RuleRoute(router, userService)
 	HistoryScanRouteController.HistoryScanRoute(router, userService)
 	TriggerRouteController.TriggerRoute(router, userService)
+	SettingRouteController.SettingRoute(router, userService)
 
 	log.Fatal(server.Run(":" + appConfig.Port))
 }
