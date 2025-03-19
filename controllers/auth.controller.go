@@ -35,7 +35,8 @@ func (ac *AuthController) SignUpUser(ctx *gin.Context) {
 		return
 	}
 
-	user.AuthMethod = config.BasicAuth
+	user.Role = utils.UserRole
+	user.AuthMethod = utils.BasicAuth
 	newUser, err := ac.authService.SignUpUser(user)
 
 	if err != nil {
@@ -168,7 +169,7 @@ func (ac *AuthController) GetLoginOptions(ctx *gin.Context) {
 			"settings": gin.H{}, // Contains additional information if any
 		}
 
-		if method.Type == config.Oauth2Auth {
+		if method.Type == utils.Oauth2Auth {
 			var oauth2Info models.OAuth2Config
 			if err := json.Unmarshal(method.Configs, &oauth2Info); err != nil {
 				ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
@@ -178,26 +179,20 @@ func (ac *AuthController) GetLoginOptions(ctx *gin.Context) {
 				return
 			}
 
-			oauth2Config := &oauth2.Config{
-				ClientID:     oauth2Info.ClientID,
-				ClientSecret: oauth2Info.ClientSecret,
-				RedirectURL:  oauth2Info.RedirectURL,
-				Endpoint: oauth2.Endpoint{
-					AuthURL:  fmt.Sprintf("%s/authorize/", oauth2Info.IssuerURL),
-					TokenURL: fmt.Sprintf("%s/token/", oauth2Info.IssuerURL),
-				},
-				Scopes: oauth2Info.Scopes,
+			oauth2Config, err := utils.ParseOAuth2Config(oauth2Info)
+			if err != nil {
+				ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": err.Error()})
+				return
 			}
 
 			authURL := oauth2Config.AuthCodeURL(method.Id.Hex(), oauth2.AccessTypeOffline)
-
 			methodData["settings"] = gin.H{
 				"auth_url":    authURL,
 				"button_text": oauth2Info.ButtonText,
 			}
 		}
 
-		if method.Type == config.BasicAuth {
+		if method.Type == utils.BasicAuth {
 			var basicAuthConfig models.BasicAuthConfig
 			if err := json.Unmarshal(method.Configs, &basicAuthConfig); err != nil {
 				ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
@@ -231,7 +226,16 @@ func (ac *AuthController) Oauth2Callback(ctx *gin.Context) {
 		return
 	}
 
-	oauth2Config, err := utils.ParseOAuth2Config(authMethod.Configs)
+	var oauth2Info models.OAuth2Config
+	if err := json.Unmarshal(authMethod.Configs, &oauth2Info); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"status":  "fail",
+			"message": "Failed to parse OAuth2 config",
+		})
+		return
+	}
+
+	oauth2Config, err := utils.ParseOAuth2Config(oauth2Info)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": err.Error()})
 		return
@@ -250,11 +254,17 @@ func (ac *AuthController) Oauth2Callback(ctx *gin.Context) {
 		return
 	}
 
+	userRole := utils.UserRole
+	if utils.IsAdmin(userClaims.Groups, oauth2Info.AdminGroups) {
+		userRole = utils.AdminRole
+	}
+
 	userInfo, err := ac.authService.SyncOauth2User(&models.SignUpInput{
+		Role:       userRole,
 		Verified:   userClaims.EmailVerified,
 		Username:   userClaims.PreferredUsername,
 		Email:      userClaims.Email,
-		AuthMethod: config.Oauth2Auth,
+		AuthMethod: utils.Oauth2Auth,
 	})
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "the user no logger exists"})

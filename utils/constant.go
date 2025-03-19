@@ -12,4 +12,10 @@ const (
 
 	StatusSuccessScan = "success"
 	StatusErrorScan   = "error"
+
+	BasicAuth  = "basic"
+	Oauth2Auth = "oauth2"
+
+	AdminRole = "admin"
+	UserRole  = "user"
 )

@@ -41,13 +41,8 @@ type DBResponse struct {
 	UpdatedAt  time.Time          `json:"updated_at" bson:"updated_at"`
 }
 
-type UpdateInput struct {
-	Name      string    `json:"name,omitempty" bson:"name,omitempty"`
-	Username  string    `json:"username,omitempty" bson:"username,omitempty"`
-	Password  string    `json:"password,omitempty" bson:"password,omitempty"`
-	Email     string    `json:"email,omitempty" bson:"email,omitempty"`
+type UserUpdate struct {
 	Role      string    `json:"role,omitempty" bson:"role,omitempty"`
-	Verified  bool      `json:"verified,omitempty" bson:"verified,omitempty"`
 	IsActive  bool      `json:"is_active,omitempty" bson:"is_active,omitempty"`
 	CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
@@ -75,6 +70,19 @@ type UserClaims struct {
 	PreferredUsername string   `json:"preferred_username"`
 	Nickname          string   `json:"nickname"`
 	Groups            []string `json:"groups"`
+}
+
+type UserListResponse struct {
+	Data       []*UserResponse `json:"data"`
+	Pagination *Pagination     `json:"pagination"`
+}
+
+type UserSearchParams struct {
+	CurrentPage     int    `json:"current_page"`
+	PageSize        int    `json:"page_size"`
+	NameKeyword     string `json:"name_keyword"`
+	UsernameKeyword string `json:"username_keyword"`
+	EmailKeyword    string `json:"email_keyword"`
 }
 
 func FilteredResponse(user *DBResponse) UserResponse {

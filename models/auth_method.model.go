@@ -30,10 +30,19 @@ type BasicAuthConfig struct {
 }
 
 type OAuth2Config struct {
-	ClientID     string   `json:"client_id"`
-	ClientSecret string   `json:"client_secret"`
-	IssuerURL    string   `json:"issuer_url"`
-	RedirectURL  string   `json:"redirect_url"`
-	Scopes       []string `json:"scopes"`
-	ButtonText   string   `json:"button_text"`
+	ClientID           string   `json:"client_id"`
+	ClientSecret       string   `json:"client_secret"`
+	WellKnownConfigURL string   `json:"well_known_config_url"`
+	IssuerURL          string   `json:"issuer_url"`
+	RedirectURL        string   `json:"redirect_url"`
+	Scopes             []string `json:"scopes"`
+	AdminGroups        []string `json:"admin_groups"`
+	ButtonText         string   `json:"button_text"`
+}
+
+type WellKnownConfig struct {
+	Issuer      string `json:"issuer"`
+	AuthURL     string `json:"authorization_endpoint"`
+	TokenURL    string `json:"token_endpoint"`
+	UserInfoURL string `json:"userinfo_endpoint"`
 }

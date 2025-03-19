@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/thuongnn/clst-mgt-api/models"
 	"golang.org/x/oauth2"
+	"net/http"
 	"strings"
 	"time"
 
@@ -89,9 +90,28 @@ func DecodeOauth2Token[T any](tokenString string, out *T) error {
 	return nil
 }
 
-func ParseOAuth2Config(configs []byte) (*oauth2.Config, error) {
-	var oauth2Info models.OAuth2Config
-	if err := json.Unmarshal(configs, &oauth2Info); err != nil {
+func FetchWellKnownConfig(wellKnownConfigUrl string) (*models.WellKnownConfig, error) {
+	resp, err := http.Get(wellKnownConfigUrl)
+	if err != nil {
+		return nil, fmt.Errorf("lỗi request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("lỗi HTTP %d", resp.StatusCode)
+	}
+
+	var config models.WellKnownConfig
+	if err := json.NewDecoder(resp.Body).Decode(&config); err != nil {
+		return nil, fmt.Errorf("lỗi parse JSON: %v", err)
+	}
+
+	return &config, nil
+}
+
+func ParseOAuth2Config(oauth2Info models.OAuth2Config) (*oauth2.Config, error) {
+	wellKnownConfig, err := FetchWellKnownConfig(oauth2Info.WellKnownConfigURL)
+	if err != nil {
 		return nil, err
 	}
 
@@ -100,8 +120,8 @@ func ParseOAuth2Config(configs []byte) (*oauth2.Config, error) {
 		ClientSecret: oauth2Info.ClientSecret,
 		RedirectURL:  oauth2Info.RedirectURL,
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  fmt.Sprintf("%s/authorize/", oauth2Info.IssuerURL),
-			TokenURL: fmt.Sprintf("%s/token/", oauth2Info.IssuerURL),
+			AuthURL:  wellKnownConfig.AuthURL,
+			TokenURL: wellKnownConfig.TokenURL,
 		},
 		Scopes: oauth2Info.Scopes,
 	}, nil

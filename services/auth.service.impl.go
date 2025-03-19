@@ -78,6 +78,7 @@ func (uc *AuthServiceImpl) SyncOauth2User(user *models.SignUpInput) (*models.DBR
 	if err != nil {
 		// If user does not exist → Create new
 		if err == mongo.ErrNoDocuments {
+			user.IsActive = true
 			user.CreatedAt = user.UpdatedAt
 			res, err := uc.collection.InsertOne(uc.ctx, user)
 			if err != nil {

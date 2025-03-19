@@ -100,3 +100,19 @@ func PortParser(rawPort string) (*models.Port, error) {
 
 	return nil, fmt.Errorf("The port number doesn't match any protocol pattern! ")
 }
+
+func IsAdmin(userGroups, adminGroups []string) bool {
+	groupSet := make(map[string]struct{})
+
+	for _, group := range adminGroups {
+		groupSet[group] = struct{}{}
+	}
+
+	for _, group := range userGroups {
+		if _, exists := groupSet[group]; exists {
+			return true
+		}
+	}
+
+	return false
+}
