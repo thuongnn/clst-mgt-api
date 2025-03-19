@@ -35,6 +35,7 @@ func (ac *AuthController) SignUpUser(ctx *gin.Context) {
 		return
 	}
 
+	user.AuthMethod = config.BasicAuth
 	newUser, err := ac.authService.SignUpUser(user)
 
 	if err != nil {
@@ -67,6 +68,11 @@ func (ac *AuthController) SignInUser(ctx *gin.Context) {
 		return
 	}
 
+	if !user.IsActive {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "Account is disabled, please contact admin for support"})
+		return
+	}
+
 	if !user.Verified {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "You are not verified, please verify your email to login"})
 		return
@@ -92,26 +98,22 @@ func (ac *AuthController) SignInUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("access_token", accessToken, appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("refresh_token", refreshToken, appConfig.RefreshTokenMaxAge*60, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("logged_in", "true", appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, false)
-
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": accessToken})
+	ctx.JSON(http.StatusOK, gin.H{
+		"status":        "success",
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
 }
-
 func (ac *AuthController) RefreshAccessToken(ctx *gin.Context) {
-	message := "could not refresh access token"
+	var refreshToken string
 
-	cookie, err := ctx.Cookie("refresh_token")
-
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": message})
-		return
+	authorizationHeader := ctx.Request.Header.Get("Authorization")
+	if strings.HasPrefix(authorizationHeader, "Bearer ") {
+		refreshToken = strings.TrimPrefix(authorizationHeader, "Bearer ")
 	}
 
 	appConfig, _ := config.LoadConfig(".")
-
-	sub, err := utils.ValidateToken(cookie, appConfig.RefreshTokenPublicKey)
+	sub, err := utils.ValidateToken(refreshToken, appConfig.RefreshTokenPublicKey)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": err.Error()})
 		return
@@ -129,80 +131,110 @@ func (ac *AuthController) RefreshAccessToken(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("access_token", accessToken, appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("logged_in", "true", appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, false)
+	newRefreshToken, err := utils.CreateToken(appConfig.RefreshTokenExpiresIn, user.ID, appConfig.RefreshTokenPrivateKey)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
 
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": accessToken})
+	ctx.JSON(http.StatusOK, gin.H{
+		"status":        "success",
+		"access_token":  accessToken,
+		"refresh_token": newRefreshToken,
+	})
 }
 
 func (ac *AuthController) LogoutUser(ctx *gin.Context) {
-	appConfig, _ := config.LoadConfig(".")
-
-	ctx.SetCookie("access_token", "", -1, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("refresh_token", "", -1, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("logged_in", "", -1, "/", appConfig.Domain, false, true)
-
+	//currentUser := ctx.MustGet("currentUser").(*models.DBResponse)
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-func (ac *AuthController) LoginInfo(ctx *gin.Context) {
-	authMethod, err := ac.authMethodService.GetAuthMethodByType("oauth2")
+func (ac *AuthController) GetLoginOptions(ctx *gin.Context) {
+	authMethods, err := ac.authMethodService.GetActiveAuthMethods()
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "Failed to get OAuth2 config"})
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+			"status":  "fail",
+			"message": "Failed to get active authentication methods",
+		})
 		return
 	}
 
-	var oauth2Info models.OAuth2Config
-	if err := json.Unmarshal(authMethod.Configs, &oauth2Info); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": err.Error()})
-		return
+	var response []gin.H
+
+	for _, method := range authMethods {
+		methodData := gin.H{
+			"type":     method.Type,
+			"name":     method.Name,
+			"settings": gin.H{}, // Contains additional information if any
+		}
+
+		if method.Type == config.Oauth2Auth {
+			var oauth2Info models.OAuth2Config
+			if err := json.Unmarshal(method.Configs, &oauth2Info); err != nil {
+				ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+					"status":  "fail",
+					"message": "Failed to parse OAuth2 config",
+				})
+				return
+			}
+
+			oauth2Config := &oauth2.Config{
+				ClientID:     oauth2Info.ClientID,
+				ClientSecret: oauth2Info.ClientSecret,
+				RedirectURL:  oauth2Info.RedirectURL,
+				Endpoint: oauth2.Endpoint{
+					AuthURL:  fmt.Sprintf("%s/authorize/", oauth2Info.IssuerURL),
+					TokenURL: fmt.Sprintf("%s/token/", oauth2Info.IssuerURL),
+				},
+				Scopes: oauth2Info.Scopes,
+			}
+
+			authURL := oauth2Config.AuthCodeURL(method.Id.Hex(), oauth2.AccessTypeOffline)
+
+			methodData["settings"] = gin.H{
+				"auth_url":    authURL,
+				"button_text": oauth2Info.ButtonText,
+			}
+		}
+
+		if method.Type == config.BasicAuth {
+			var basicAuthConfig models.BasicAuthConfig
+			if err := json.Unmarshal(method.Configs, &basicAuthConfig); err != nil {
+				ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+					"status":  "fail",
+					"message": "Failed to parse Basic Auth config",
+				})
+				return
+			}
+
+			methodData["settings"] = gin.H{
+				"button_text": basicAuthConfig.ButtonText,
+			}
+		}
+
+		response = append(response, methodData)
 	}
 
-	fmt.Println(oauth2Info)
-
-	oauth2Config := &oauth2.Config{
-		ClientID:     oauth2Info.ClientID,
-		ClientSecret: oauth2Info.ClientSecret,
-		RedirectURL:  oauth2Info.RedirectURL,
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  fmt.Sprintf("%s/authorize/", oauth2Info.IssuerURL),
-			TokenURL: fmt.Sprintf("%s/token/", oauth2Info.IssuerURL),
-		},
-		Scopes: oauth2Info.Scopes,
-	}
-
-	authUrl := oauth2Config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "auth_url": authUrl, "button_text": oauth2Info.RedirectURL})
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "data": response})
 }
 
 func (ac *AuthController) Oauth2Callback(ctx *gin.Context) {
-	var code = ctx.DefaultQuery("code", "")
-	if code == "" {
-		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "Missing authorization code"})
+	state, code := ctx.Query("state"), ctx.Query("code")
+	if state == "" || code == "" {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "Missing state or authorization code"})
 		return
 	}
 
-	authMethod, err := ac.authMethodService.GetAuthMethodByType("oauth2")
+	authMethod, err := ac.authMethodService.GetAuthMethodById(state)
 	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "Failed to get OAuth2 config"})
 		return
 	}
 
-	var oauth2Info models.OAuth2Config
-	if err := json.Unmarshal(authMethod.Configs, &oauth2Info); err != nil {
+	oauth2Config, err := utils.ParseOAuth2Config(authMethod.Configs)
+	if err != nil {
 		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": err.Error()})
 		return
-	}
-
-	oauth2Config := &oauth2.Config{
-		ClientID:     oauth2Info.ClientID,
-		ClientSecret: oauth2Info.ClientSecret,
-		RedirectURL:  oauth2Info.RedirectURL,
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  fmt.Sprintf("%s/authorize/", oauth2Info.IssuerURL),
-			TokenURL: fmt.Sprintf("%s/token/", oauth2Info.IssuerURL),
-		},
-		Scopes: oauth2Info.Scopes,
 	}
 
 	token, err := oauth2Config.Exchange(context.Background(), code)
@@ -211,10 +243,46 @@ func (ac *AuthController) Oauth2Callback(ctx *gin.Context) {
 		return
 	}
 
+	var userClaims models.UserClaims
+	err = utils.DecodeOauth2Token(token.AccessToken, &userClaims)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+
+	userInfo, err := ac.authService.SyncOauth2User(&models.SignUpInput{
+		Verified:   userClaims.EmailVerified,
+		Username:   userClaims.PreferredUsername,
+		Email:      userClaims.Email,
+		AuthMethod: config.Oauth2Auth,
+	})
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "the user no logger exists"})
+		return
+	}
+
+	if !userInfo.IsActive {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "Account is disabled, please contact admin for support"})
+		return
+	}
+
+	if !userInfo.Verified {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"status": "fail", "message": "You are not verified, please verify your email to login"})
+		return
+	}
+
+	// Generate Tokens
 	appConfig, _ := config.LoadConfig(".")
-	ctx.SetCookie("access_token", token.AccessToken, appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("refresh_token", token.RefreshToken, appConfig.RefreshTokenMaxAge*60, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("id_token", token.Extra("id_token").(string), appConfig.RefreshTokenMaxAge*60, "/", appConfig.Domain, false, true)
-	ctx.SetCookie("logged_in", "true", appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, false)
-	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": token.AccessToken})
+	accessToken, err := utils.CreateToken(appConfig.AccessTokenExpiresIn, userInfo.ID, appConfig.AccessTokenPrivateKey)
+	refreshToken, err := utils.CreateToken(appConfig.RefreshTokenExpiresIn, userInfo.ID, appConfig.RefreshTokenPrivateKey)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"status":        "success",
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
 }

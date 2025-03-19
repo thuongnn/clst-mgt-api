@@ -2,7 +2,11 @@ package utils
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"github.com/thuongnn/clst-mgt-api/models"
+	"golang.org/x/oauth2"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -65,4 +69,40 @@ func ValidateToken(token string, publicKey string) (interface{}, error) {
 	}
 
 	return claims["sub"], nil
+}
+
+func DecodeOauth2Token[T any](tokenString string, out *T) error {
+	parts := strings.Split(tokenString, ".")
+	if len(parts) != 3 {
+		return fmt.Errorf("invalid JWT token")
+	}
+
+	payload, err := jwt.DecodeSegment(parts[1])
+	if err != nil {
+		return fmt.Errorf("failed to decode JWT payload: %v", err)
+	}
+
+	if err := json.Unmarshal(payload, out); err != nil {
+		return fmt.Errorf("failed to parse JWT claims: %v", err)
+	}
+
+	return nil
+}
+
+func ParseOAuth2Config(configs []byte) (*oauth2.Config, error) {
+	var oauth2Info models.OAuth2Config
+	if err := json.Unmarshal(configs, &oauth2Info); err != nil {
+		return nil, err
+	}
+
+	return &oauth2.Config{
+		ClientID:     oauth2Info.ClientID,
+		ClientSecret: oauth2Info.ClientSecret,
+		RedirectURL:  oauth2Info.RedirectURL,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  fmt.Sprintf("%s/authorize/", oauth2Info.IssuerURL),
+			TokenURL: fmt.Sprintf("%s/token/", oauth2Info.IssuerURL),
+		},
+		Scopes: oauth2Info.Scopes,
+	}, nil
 }

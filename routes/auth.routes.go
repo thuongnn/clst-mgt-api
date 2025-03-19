@@ -3,7 +3,6 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/thuongnn/clst-mgt-api/controllers"
-	"github.com/thuongnn/clst-mgt-api/middleware"
 	"github.com/thuongnn/clst-mgt-api/services"
 )
 
@@ -18,11 +17,12 @@ func NewAuthRouteController(authController controllers.AuthController) AuthRoute
 func (rc *AuthRouteController) AuthRoute(rg *gin.RouterGroup, userService services.UserService) {
 	router := rg.Group("/auth")
 
-	router.GET("/login_info", rc.authController.LoginInfo)
+	router.GET("/", rc.authController.GetLoginOptions)
 	router.POST("/register", rc.authController.SignUpUser)
 	router.POST("/login", rc.authController.SignInUser)
 	router.GET("/refresh", rc.authController.RefreshAccessToken)
-	router.GET("/callback", rc.authController.Oauth2Callback)
-	router.GET("/logout", middleware.DeserializeUser(userService), rc.authController.LogoutUser)
+	router.GET("/logout", rc.authController.LogoutUser)
 
+	// routes for oauth2
+	router.GET("/oauth2/callback", rc.authController.Oauth2Callback)
 }

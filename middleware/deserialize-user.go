@@ -14,15 +14,12 @@ import (
 func DeserializeUser(userService services.UserService) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var accessToken string
-		cookie, err := ctx.Cookie("access_token")
 
 		authorizationHeader := ctx.Request.Header.Get("Authorization")
 		fields := strings.Fields(authorizationHeader)
 
 		if len(fields) != 0 && fields[0] == "Bearer" {
 			accessToken = fields[1]
-		} else if err == nil {
-			accessToken = cookie
 		}
 
 		if accessToken == "" {

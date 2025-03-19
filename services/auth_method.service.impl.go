@@ -58,20 +58,29 @@ func (a AuthMethodServiceImpl) GetAuthMethodById(id string) (*models.AuthMethod,
 	return authMethod, nil
 }
 
-func (a AuthMethodServiceImpl) GetAuthMethodByType(authMethodType string) (*models.AuthMethod, error) {
-	filter := bson.M{"type": authMethodType}
+func (a AuthMethodServiceImpl) GetActiveAuthMethods() ([]*models.AuthMethod, error) {
+	filter := bson.M{"is_active": true}
 
-	res := a.authMethodCollection.FindOne(a.ctx, filter)
-	if res.Err() != nil {
-		return nil, res.Err()
+	cursor, err := a.authMethodCollection.Find(a.ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(a.ctx)
+
+	var authMethods []*models.AuthMethod
+	for cursor.Next(a.ctx) {
+		var authMethod models.AuthMethod
+		if err := cursor.Decode(&authMethod); err != nil {
+			return nil, err
+		}
+		authMethods = append(authMethods, &authMethod)
 	}
 
-	var authMethod = &models.AuthMethod{}
-	if errDecode := res.Decode(authMethod); errDecode != nil {
-		return nil, errDecode
+	if err := cursor.Err(); err != nil {
+		return nil, err
 	}
 
-	return authMethod, nil
+	return authMethods, nil
 }
 
 func (a AuthMethodServiceImpl) CountAuthMethods() (int64, error) {

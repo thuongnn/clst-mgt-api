@@ -10,6 +10,8 @@ import (
 var (
 	DefaultEnvironment = "dev"
 	DefaultNamespace   = "default"
+	BasicAuth          = "basic"
+	Oauth2Auth         = "oauth2"
 
 	once          sync.Once
 	onceMu        sync.Mutex
