@@ -58,6 +58,22 @@ func (a AuthMethodServiceImpl) GetAuthMethodById(id string) (*models.AuthMethod,
 	return authMethod, nil
 }
 
+func (a AuthMethodServiceImpl) GetAuthMethodByType(authMethodType string) (*models.AuthMethod, error) {
+	filter := bson.M{"type": authMethodType}
+
+	res := a.authMethodCollection.FindOne(a.ctx, filter)
+	if res.Err() != nil {
+		return nil, res.Err()
+	}
+
+	var authMethod = &models.AuthMethod{}
+	if errDecode := res.Decode(authMethod); errDecode != nil {
+		return nil, errDecode
+	}
+
+	return authMethod, nil
+}
+
 func (a AuthMethodServiceImpl) CountAuthMethods() (int64, error) {
 	count, err := a.authMethodCollection.CountDocuments(context.TODO(), bson.M{})
 	if err != nil {

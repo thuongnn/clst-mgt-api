@@ -22,7 +22,10 @@ type BasicAuthConfig struct {
 }
 
 type OAuth2Config struct {
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
-	TokenURL     string `json:"token_url"`
+	ClientID     string   `json:"client_id"`
+	ClientSecret string   `json:"client_secret"`
+	IssuerURL    string   `json:"issuer_url"`
+	RedirectURL  string   `json:"redirect_url"`
+	Scopes       []string `json:"scopes"`
+	//ButtonText   string   `json:"button_text"`
 }

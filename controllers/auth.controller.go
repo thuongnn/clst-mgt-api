@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/thuongnn/clst-mgt-api/config"
@@ -9,19 +10,21 @@ import (
 	"github.com/thuongnn/clst-mgt-api/services"
 	"github.com/thuongnn/clst-mgt-api/utils"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/oauth2"
 	"net/http"
 	"strings"
 )
 
 type AuthController struct {
-	authService services.AuthService
-	userService services.UserService
-	ctx         context.Context
-	collection  *mongo.Collection
+	authMethodService services.AuthMethodService
+	authService       services.AuthService
+	userService       services.UserService
+	ctx               context.Context
+	collection        *mongo.Collection
 }
 
-func NewAuthController(authService services.AuthService, userService services.UserService, ctx context.Context, collection *mongo.Collection) AuthController {
-	return AuthController{authService, userService, ctx, collection}
+func NewAuthController(authMethodService services.AuthMethodService, authService services.AuthService, userService services.UserService, ctx context.Context, collection *mongo.Collection) AuthController {
+	return AuthController{authMethodService, authService, userService, ctx, collection}
 }
 
 func (ac *AuthController) SignUpUser(ctx *gin.Context) {
@@ -140,4 +143,78 @@ func (ac *AuthController) LogoutUser(ctx *gin.Context) {
 	ctx.SetCookie("logged_in", "", -1, "/", appConfig.Domain, false, true)
 
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+func (ac *AuthController) LoginInfo(ctx *gin.Context) {
+	authMethod, err := ac.authMethodService.GetAuthMethodByType("oauth2")
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "Failed to get OAuth2 config"})
+		return
+	}
+
+	var oauth2Info models.OAuth2Config
+	if err := json.Unmarshal(authMethod.Configs, &oauth2Info); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+
+	fmt.Println(oauth2Info)
+
+	oauth2Config := &oauth2.Config{
+		ClientID:     oauth2Info.ClientID,
+		ClientSecret: oauth2Info.ClientSecret,
+		RedirectURL:  oauth2Info.RedirectURL,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  fmt.Sprintf("%s/authorize/", oauth2Info.IssuerURL),
+			TokenURL: fmt.Sprintf("%s/token/", oauth2Info.IssuerURL),
+		},
+		Scopes: oauth2Info.Scopes,
+	}
+
+	authUrl := oauth2Config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "auth_url": authUrl, "button_text": oauth2Info.RedirectURL})
+}
+
+func (ac *AuthController) Oauth2Callback(ctx *gin.Context) {
+	var code = ctx.DefaultQuery("code", "")
+	if code == "" {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "Missing authorization code"})
+		return
+	}
+
+	authMethod, err := ac.authMethodService.GetAuthMethodByType("oauth2")
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": "Failed to get OAuth2 config"})
+		return
+	}
+
+	var oauth2Info models.OAuth2Config
+	if err := json.Unmarshal(authMethod.Configs, &oauth2Info); err != nil {
+		ctx.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+
+	oauth2Config := &oauth2.Config{
+		ClientID:     oauth2Info.ClientID,
+		ClientSecret: oauth2Info.ClientSecret,
+		RedirectURL:  oauth2Info.RedirectURL,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  fmt.Sprintf("%s/authorize/", oauth2Info.IssuerURL),
+			TokenURL: fmt.Sprintf("%s/token/", oauth2Info.IssuerURL),
+		},
+		Scopes: oauth2Info.Scopes,
+	}
+
+	token, err := oauth2Config.Exchange(context.Background(), code)
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+
+	appConfig, _ := config.LoadConfig(".")
+	ctx.SetCookie("access_token", token.AccessToken, appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, true)
+	ctx.SetCookie("refresh_token", token.RefreshToken, appConfig.RefreshTokenMaxAge*60, "/", appConfig.Domain, false, true)
+	ctx.SetCookie("id_token", token.Extra("id_token").(string), appConfig.RefreshTokenMaxAge*60, "/", appConfig.Domain, false, true)
+	ctx.SetCookie("logged_in", "true", appConfig.AccessTokenMaxAge*60, "/", appConfig.Domain, false, false)
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "access_token": token.AccessToken})
 }

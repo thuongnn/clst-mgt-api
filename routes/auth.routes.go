@@ -18,8 +18,11 @@ func NewAuthRouteController(authController controllers.AuthController) AuthRoute
 func (rc *AuthRouteController) AuthRoute(rg *gin.RouterGroup, userService services.UserService) {
 	router := rg.Group("/auth")
 
+	router.GET("/login_info", rc.authController.LoginInfo)
 	router.POST("/register", rc.authController.SignUpUser)
 	router.POST("/login", rc.authController.SignInUser)
 	router.GET("/refresh", rc.authController.RefreshAccessToken)
+	router.GET("/callback", rc.authController.Oauth2Callback)
 	router.GET("/logout", middleware.DeserializeUser(userService), rc.authController.LogoutUser)
+
 }
