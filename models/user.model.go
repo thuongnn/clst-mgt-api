@@ -26,8 +26,8 @@ type SignInInput struct {
 	Password string `json:"password" bson:"password" binding:"required"`
 }
 
-// DBResponse struct
-type DBResponse struct {
+// UserUserDBResponse struct
+type UserDBResponse struct {
 	ID         primitive.ObjectID `json:"id" bson:"_id"`
 	Name       string             `json:"name" bson:"name"`
 	Username   string             `json:"username" bson:"username"`
@@ -85,7 +85,7 @@ type UserSearchParams struct {
 	EmailKeyword    string `json:"email_keyword"`
 }
 
-func FilteredResponse(user *DBResponse) UserResponse {
+func FilteredResponse(user *UserDBResponse) UserResponse {
 	return UserResponse{
 		ID:         user.ID,
 		Username:   user.Username,

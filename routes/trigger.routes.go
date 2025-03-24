@@ -19,7 +19,7 @@ func (t *TriggerRouteController) TriggerRoute(rg *gin.RouterGroup, userService s
 	router := rg.Group("/triggers")
 	router.Use(middleware.DeserializeUser(userService))
 
-	router.POST("/all", t.triggerController.TriggerAll)
+	router.POST("/all", middleware.AdminOnly(), t.triggerController.TriggerAll)
 	router.POST("/", t.triggerController.TriggerByRuleIds)
 
 }

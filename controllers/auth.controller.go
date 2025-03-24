@@ -146,7 +146,7 @@ func (ac *AuthController) RefreshAccessToken(ctx *gin.Context) {
 }
 
 func (ac *AuthController) LogoutUser(ctx *gin.Context) {
-	//currentUser := ctx.MustGet("currentUser").(*models.DBResponse)
+	//currentUser := ctx.MustGet("currentUser").(*models.UserDBResponse)
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
@@ -260,6 +260,7 @@ func (ac *AuthController) Oauth2Callback(ctx *gin.Context) {
 	}
 
 	userInfo, err := ac.authService.SyncOauth2User(&models.SignUpInput{
+		Name:       userClaims.Name,
 		Role:       userRole,
 		Verified:   userClaims.EmailVerified,
 		Username:   userClaims.PreferredUsername,

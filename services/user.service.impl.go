@@ -18,15 +18,15 @@ type UserServiceImpl struct {
 	ctx            context.Context
 }
 
-func (us *UserServiceImpl) FindUserByUsername(username string) (*models.DBResponse, error) {
-	var user *models.DBResponse
+func (us *UserServiceImpl) FindUserByUsername(username string) (*models.UserDBResponse, error) {
+	var user *models.UserDBResponse
 
 	query := bson.M{"username": strings.ToLower(username)}
 	err := us.userCollection.FindOne(us.ctx, query).Decode(&user)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return &models.DBResponse{}, err
+			return &models.UserDBResponse{}, err
 		}
 		return nil, err
 	}
@@ -125,17 +125,17 @@ func (us UserServiceImpl) FindUsers(params *models.UserSearchParams) (*models.Us
 	}, nil
 }
 
-func (us *UserServiceImpl) FindUserById(id string) (*models.DBResponse, error) {
+func (us *UserServiceImpl) FindUserById(id string) (*models.UserDBResponse, error) {
 	oid, _ := primitive.ObjectIDFromHex(id)
 
-	var user *models.DBResponse
+	var user *models.UserDBResponse
 
 	query := bson.M{"_id": oid}
 	err := us.userCollection.FindOne(us.ctx, query).Decode(&user)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return &models.DBResponse{}, err
+			return &models.UserDBResponse{}, err
 		}
 		return nil, err
 	}
@@ -143,15 +143,15 @@ func (us *UserServiceImpl) FindUserById(id string) (*models.DBResponse, error) {
 	return user, nil
 }
 
-func (us *UserServiceImpl) FindUserByEmail(email string) (*models.DBResponse, error) {
-	var user *models.DBResponse
+func (us *UserServiceImpl) FindUserByEmail(email string) (*models.UserDBResponse, error) {
+	var user *models.UserDBResponse
 
 	query := bson.M{"email": strings.ToLower(email)}
 	err := us.userCollection.FindOne(us.ctx, query).Decode(&user)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return &models.DBResponse{}, err
+			return &models.UserDBResponse{}, err
 		}
 		return nil, err
 	}

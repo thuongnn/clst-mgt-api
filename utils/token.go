@@ -93,17 +93,17 @@ func DecodeOauth2Token[T any](tokenString string, out *T) error {
 func FetchWellKnownConfig(wellKnownConfigUrl string) (*models.WellKnownConfig, error) {
 	resp, err := http.Get(wellKnownConfigUrl)
 	if err != nil {
-		return nil, fmt.Errorf("lỗi request: %v", err)
+		return nil, fmt.Errorf("request error: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("lỗi HTTP %d", resp.StatusCode)
+		return nil, fmt.Errorf("HTTP error %d", resp.StatusCode)
 	}
 
 	var config models.WellKnownConfig
 	if err := json.NewDecoder(resp.Body).Decode(&config); err != nil {
-		return nil, fmt.Errorf("lỗi parse JSON: %v", err)
+		return nil, fmt.Errorf("parse JSON error: %v", err)
 	}
 
 	return &config, nil

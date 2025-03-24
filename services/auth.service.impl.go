@@ -22,7 +22,7 @@ func NewAuthService(collection *mongo.Collection, ctx context.Context) AuthServi
 	return &AuthServiceImpl{collection, ctx}
 }
 
-func (uc *AuthServiceImpl) SignUpUser(user *models.SignUpInput) (*models.DBResponse, error) {
+func (uc *AuthServiceImpl) SignUpUser(user *models.SignUpInput) (*models.UserDBResponse, error) {
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = user.CreatedAt
 	user.Username = strings.ToLower(user.Username)
@@ -50,7 +50,7 @@ func (uc *AuthServiceImpl) SignUpUser(user *models.SignUpInput) (*models.DBRespo
 		return nil, errors.New("could not create index for username")
 	}
 
-	var newUser *models.DBResponse
+	var newUser *models.UserDBResponse
 	query := bson.M{"_id": res.InsertedID}
 
 	err = uc.collection.FindOne(uc.ctx, query).Decode(&newUser)
@@ -61,18 +61,18 @@ func (uc *AuthServiceImpl) SignUpUser(user *models.SignUpInput) (*models.DBRespo
 	return newUser, nil
 }
 
-func (uc *AuthServiceImpl) SignInUser(*models.SignInInput) (*models.DBResponse, error) {
+func (uc *AuthServiceImpl) SignInUser(*models.SignInInput) (*models.UserDBResponse, error) {
 	return nil, nil
 }
 
-func (uc *AuthServiceImpl) SyncOauth2User(user *models.SignUpInput) (*models.DBResponse, error) {
+func (uc *AuthServiceImpl) SyncOauth2User(user *models.SignUpInput) (*models.UserDBResponse, error) {
 	user.UpdatedAt = time.Now()
 	user.Username = strings.ToLower(user.Username)
 	user.Email = strings.ToLower(user.Email)
 
 	filter := bson.M{"$or": []bson.M{{"email": user.Email}, {"username": user.Username}}}
 
-	var existingUser *models.DBResponse
+	var existingUser *models.UserDBResponse
 	err := uc.collection.FindOne(uc.ctx, filter).Decode(&existingUser)
 
 	if err != nil {
@@ -88,7 +88,7 @@ func (uc *AuthServiceImpl) SyncOauth2User(user *models.SignUpInput) (*models.DBR
 				return nil, err
 			}
 
-			var newUser *models.DBResponse
+			var newUser *models.UserDBResponse
 			query := bson.M{"_id": res.InsertedID}
 
 			err = uc.collection.FindOne(uc.ctx, query).Decode(&newUser)

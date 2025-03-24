@@ -18,6 +18,7 @@ func NewSettingControllerRoute(authMethodController controllers.AuthMethodContro
 func (s *SettingRouteController) SettingRoute(rg *gin.RouterGroup, userService services.UserService) {
 	router := rg.Group("/settings")
 	router.Use(middleware.DeserializeUser(userService))
+	router.Use(middleware.AdminOnly())
 
 	router.GET("/auth/", s.authMethodController.GetAuthMethods)
 	router.GET("/auth/:authMethodId", s.authMethodController.GetAuthMethodById)

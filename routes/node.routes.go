@@ -20,7 +20,7 @@ func (r *NodeRouteController) NodeRoute(rg *gin.RouterGroup, userService service
 	router.Use(middleware.DeserializeUser(userService))
 
 	router.GET("/", r.nodeController.GetNodes)
-	router.GET("/sync", r.nodeController.SyncNodes)
+	router.GET("/sync", middleware.AdminOnly(), r.nodeController.SyncNodes)
 	router.GET("/roles", r.nodeController.GetRoles)
 	router.GET("/roles/:nodeId", r.nodeController.GetRolesByNodeId)
 	//router.PATCH("/:postId", r.postController.UpdatePost)

@@ -18,6 +18,7 @@ type DBRule struct {
 	CR                   []int              `json:"cr,omitempty" bson:"cr,omitempty"`
 	IsActive             bool               `json:"is_active" bson:"is_active" default:"true"`
 	Description          string             `json:"description,omitempty" bson:"description,omitempty"`
+	Owner                string             `json:"owner,omitempty" bson:"owner,omitempty"`
 	CreateAt             time.Time          `json:"created_at,omitempty" bson:"created_at,omitempty"`
 	UpdatedAt            time.Time          `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
 }
