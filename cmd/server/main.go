@@ -59,6 +59,12 @@ var (
 	triggerService         services.TriggerService
 	TriggerController      controllers.TriggerController
 	TriggerRouteController routes.TriggerRouteController
+
+	// 👇 Create the Auth Method Variables
+	authMethodService      services.AuthMethodService
+	AuthMethodController   controllers.AuthMethodController
+	authMethodCollection   *mongo.Collection
+	SettingRouteController routes.SettingRouteController
 )
 
 func init() {
@@ -110,11 +116,17 @@ func init() {
 	}
 	fmt.Println("Kubernetes API successfully connected...")
 
+	// 👇 Auth Method
+	authMethodCollection = mongoClient.Database(appConfig.DBName).Collection("auth_method")
+	authMethodService = services.NewAuthMethodService(authMethodCollection, ctx)
+	AuthMethodController = controllers.NewAuthMethodController(authMethodService)
+	SettingRouteController = routes.NewSettingControllerRoute(AuthMethodController)
+
 	// 👇 Auth
 	authCollection = mongoClient.Database(appConfig.DBName).Collection("users")
 	userService = services.NewUserServiceImpl(authCollection, ctx)
 	authService = services.NewAuthService(authCollection, ctx)
-	AuthController = controllers.NewAuthController(authService, userService, ctx, authCollection)
+	AuthController = controllers.NewAuthController(authMethodService, authService, userService, ctx, authCollection)
 	AuthRouteController = routes.NewAuthRouteController(AuthController)
 
 	// 👇 Users
@@ -172,6 +184,7 @@ func startGinServer() {
 	RuleRouteController.RuleRoute(router, userService)
 	HistoryScanRouteController.HistoryScanRoute(router, userService)
 	TriggerRouteController.TriggerRoute(router, userService)
+	SettingRouteController.SettingRoute(router, userService)
 
 	log.Fatal(server.Run(":" + appConfig.Port))
 }

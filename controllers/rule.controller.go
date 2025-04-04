@@ -27,6 +27,9 @@ func (rc *RuleController) CreateRule(ctx *gin.Context) {
 		return
 	}
 
+	currentUser := ctx.MustGet("currentUser").(*models.UserDBResponse)
+	rule.Owner = currentUser.Email
+
 	if err := rc.ruleService.CreateRule(rule); err != nil {
 		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
 		return
@@ -37,6 +40,22 @@ func (rc *RuleController) CreateRule(ctx *gin.Context) {
 
 func (rc *RuleController) UpdateRule(ctx *gin.Context) {
 	ruleId := ctx.Param("ruleId")
+
+	// check only user admin has permission to delete all rules
+	currentUser := ctx.MustGet("currentUser").(*models.UserDBResponse)
+	isAdminUser := currentUser.Role == utils.AdminRole
+
+	// check only owner rule has permission to delete this rule
+	delRule, err := rc.ruleService.GetRuleById(ruleId)
+	if err != nil {
+		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+	isOwnerRule := delRule.Owner != currentUser.Email
+
+	if !isAdminUser || !isOwnerRule {
+		ctx.JSON(http.StatusForbidden, gin.H{"status": "fail", "message": "permission denied"})
+	}
 
 	var rule *models.UpdateRule
 	if err := ctx.ShouldBindJSON(&rule); err != nil {
@@ -123,6 +142,22 @@ func (rc *RuleController) GetRules(ctx *gin.Context) {
 
 func (rc *RuleController) DeleteRule(ctx *gin.Context) {
 	ruleId := ctx.Param("ruleId")
+
+	// check only user admin has permission to delete all rules
+	currentUser := ctx.MustGet("currentUser").(*models.UserDBResponse)
+	isAdminUser := currentUser.Role == utils.AdminRole
+
+	// check only owner rule has permission to delete this rule
+	delRule, err := rc.ruleService.GetRuleById(ruleId)
+	if err != nil {
+		ctx.JSON(http.StatusBadGateway, gin.H{"status": "fail", "message": err.Error()})
+		return
+	}
+	isOwnerRule := delRule.Owner != currentUser.Email
+
+	if !isAdminUser || !isOwnerRule {
+		ctx.JSON(http.StatusForbidden, gin.H{"status": "fail", "message": "permission denied"})
+	}
 
 	if err := rc.ruleService.DeleteRule(ruleId); err != nil {
 		if strings.Contains(err.Error(), "no document") {
